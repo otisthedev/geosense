@@ -3,3 +3,5 @@ screenshots/
 package-lock.json
 capture.js
 gen-icons.js
+pr-body.txt
+.claude/
