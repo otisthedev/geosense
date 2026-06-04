@@ -513,7 +513,7 @@ function placePin(lat,lng){
 }
 
 /* Result map */
-function initResultMap(gLat,gLng,tLat,tLng){
+function initResultMap(gLat,gLng,tLat,tLng,noGuess){
   if(S.resMap){S.resMap.remove();S.resMap=null;}
 
   S.resMap=L.map('res-map',{
@@ -521,7 +521,6 @@ function initResultMap(gLat,gLng,tLat,tLng){
     dragging:true,scrollWheelZoom:false,doubleClickZoom:false
   });
 
-  // CartoDB Voyager (with labels) for result — fine to show now
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
     attribution:'&copy; <a href="https://carto.com/">CARTO</a>',
     subdomains:'abcd',maxZoom:19
@@ -532,35 +531,40 @@ function initResultMap(gLat,gLng,tLat,tLng){
     html:'<div style="width:22px;height:22px;background:#00e5a0;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 3px rgba(0,229,160,.4),0 3px 14px rgba(0,0,0,.5);transform:translate(-50%,-50%)"></div>',
     iconSize:[0,0],iconAnchor:[0,0]
   });
-  var gIcon=L.divIcon({
-    className:'',
-    html:'<div style="width:18px;height:18px;background:#ff6b35;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 0 2px rgba(255,107,53,.35),0 2px 10px rgba(0,0,0,.5);opacity:.9;transform:translate(-50%,-50%)"></div>',
-    iconSize:[0,0],iconAnchor:[0,0]
-  });
 
   L.marker([tLat,tLng],{icon:tIcon}).addTo(S.resMap)
-    .bindPopup('<b style="color:#00e5a0">&#9679;</b> Target').openPopup();
-  L.marker([gLat,gLng],{icon:gIcon}).addTo(S.resMap)
-    .bindPopup('<b style="color:#ff6b35">&#9679;</b> Your guess');
+    .bindPopup(noGuess?'<b style="color:#00e5a0">&#9679;</b> '+S.curLoc.name+' — no guess placed':'<b style="color:#00e5a0">&#9679;</b> Target').openPopup();
 
-  var line=L.polyline([[gLat,gLng],[tLat,tLng]],{
-    color:'#00e5a0',weight:1.5,opacity:.75
-  }).addTo(S.resMap);
+  if(!noGuess){
+    var gIcon=L.divIcon({
+      className:'',
+      html:'<div style="width:18px;height:18px;background:#ff6b35;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 0 2px rgba(255,107,53,.35),0 2px 10px rgba(0,0,0,.5);opacity:.9;transform:translate(-50%,-50%)"></div>',
+      iconSize:[0,0],iconAnchor:[0,0]
+    });
+    L.marker([gLat,gLng],{icon:gIcon}).addTo(S.resMap)
+      .bindPopup('<b style="color:#ff6b35">&#9679;</b> Your guess');
 
-  var bounds=L.latLngBounds([[gLat,gLng],[tLat,tLng]]);
-  S.resMap.fitBounds(bounds.pad(0.35));
+    var line=L.polyline([[gLat,gLng],[tLat,tLng]],{
+      color:'#00e5a0',weight:1.5,opacity:.75
+    }).addTo(S.resMap);
 
-  S.resMap.once('moveend',function(){
-    var pathEl=line.getElement();
-    if(!pathEl)return;
-    var len=pathEl.getTotalLength();
-    pathEl.style.strokeDasharray=len+' '+len;
-    pathEl.style.strokeDashoffset=len;
-    pathEl.style.transition='none';
-    pathEl.getBoundingClientRect();
-    pathEl.style.transition='stroke-dashoffset 800ms ease-in-out';
-    pathEl.style.strokeDashoffset='0';
-  });
+    var bounds=L.latLngBounds([[gLat,gLng],[tLat,tLng]]);
+    S.resMap.fitBounds(bounds.pad(0.35));
+
+    S.resMap.once('moveend',function(){
+      var pathEl=line.getElement();
+      if(!pathEl)return;
+      var len=pathEl.getTotalLength();
+      pathEl.style.strokeDasharray=len+' '+len;
+      pathEl.style.strokeDashoffset=len;
+      pathEl.style.transition='none';
+      pathEl.getBoundingClientRect();
+      pathEl.style.transition='stroke-dashoffset 800ms ease-in-out';
+      pathEl.style.strokeDashoffset='0';
+    });
+  } else {
+    S.resMap.setView([tLat,tLng],4);
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -711,11 +715,13 @@ function calcScore(km){return Math.max(0,Math.round(5000*Math.exp(-km/2000)));}
 
 function submitGuess(){
   clearInterval(S.timerInt);
-  var gl=S.gLat!=null?S.gLat:0,gn=S.gLng!=null?S.gLng:0;
-  var dist=hav(gl,gn,S.curLoc.lat,S.curLoc.lng);
-  var pts=calcScore(dist);
+  var noGuess=S.gLat==null;
+  var gl=noGuess?S.curLoc.lat:S.gLat;
+  var gn=noGuess?S.curLoc.lng:S.gLng;
+  var dist=noGuess?0:hav(gl,gn,S.curLoc.lat,S.curLoc.lng);
+  var pts=noGuess?0:calcScore(dist);
   S.score+=pts;S.roundScores.push(pts);
-  showResult(gl,gn,dist,pts);
+  showResult(gl,gn,dist,pts,noGuess);
 }
 
 /* ═══════════════════════════════════════════════
@@ -741,13 +747,13 @@ function countUp(el,target,colorClass,duration){
   requestAnimationFrame(step);
 }
 
-function showResult(gl,gn,dist,pts){
+function showResult(gl,gn,dist,pts,noGuess){
   var pct=pts/5000;
-  var colorClass=pct>.85?'cg':pct>.55?'cp':pct>.25?'co':'cr';
+  var colorClass=noGuess?'cr':pct>.85?'cg':pct>.55?'cp':pct>.25?'co':'cr';
   document.getElementById('res-round-lbl').textContent='ROUND '+S.round+' / '+S.totalRounds;
-  document.getElementById('res-verdict').textContent=
+  document.getElementById('res-verdict').textContent=noGuess?'\u23f1 Time\'s up \u2014 no pin placed':
     pct>.85?'\ud83c\udfc6 Outstanding!':pct>.55?'\ud83c\udfaf Great guess!':pct>.25?'\ud83d\udc4d Not bad':'\ud83d\udccd Keep exploring';
-  var distStr=dist<1?'< 1':dist<10?dist.toFixed(1):Math.round(dist).toLocaleString();
+  var distStr=noGuess?'\u2014':dist<1?'< 1':dist<10?dist.toFixed(1):Math.round(dist).toLocaleString();
   document.getElementById('res-dist-num').textContent=distStr;
   document.getElementById('res-loc').textContent=S.curLoc.name;
   document.getElementById('res-pts-stat').textContent=pts.toLocaleString()+' pts';
@@ -755,7 +761,7 @@ function showResult(gl,gn,dist,pts){
   document.getElementById('btn-nxt').textContent=S.round>=S.totalRounds?'See Final Score \u2192':'Round '+(S.round+1)+' \u2192';
   showScreen('result');
   countUp(document.getElementById('res-pts'),pts,colorClass,1200);
-  setTimeout(function(){initResultMap(gl,gn,S.curLoc.lat,S.curLoc.lng);},100);
+  setTimeout(function(){initResultMap(gl,gn,S.curLoc.lat,S.curLoc.lng,noGuess);},100);
   if(pts>4200)confetti();
 }
 
