@@ -394,45 +394,46 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
    LOCATIONS
 ═══════════════════════════════════════════════ */
 var LOCS=[
-  {lat:48.8584,lng:2.2945,name:"Paris, France",head:180,
+  // Coordinates are on confirmed Street View roads / tourist areas
+  {lat:48.8566,lng:2.3522,name:"Paris, France",head:180,
    h:"19th-century European: limestone facades, wrought-iron balconies, zinc mansard rooftops. Latin script with Romance-language accent marks."},
-  {lat:35.6762,lng:139.6503,name:"Tokyo, Japan",head:90,
+  {lat:35.6595,lng:139.7004,name:"Tokyo, Japan",head:90,
    h:"Signs mix logographic, cursive syllabic, and angular syllabic scripts. Extremely dense streets. Vending machines on almost every corner."},
   {lat:-33.8688,lng:151.2093,name:"Sydney, Australia",head:45,
    h:"English signage, left-hand traffic, British-derived architecture. Subtropical vegetation — eucalyptus trees. Southern hemisphere seasons are reversed."},
-  {lat:40.7580,lng:-73.9855,name:"New York, USA",head:270,
+  {lat:40.7549,lng:-73.9840,name:"New York, USA",head:270,
    h:"American grid streets. Bright fire hydrants, yellow cabs, wooden utility poles, speed signs in mph. English-only signs."},
-  {lat:-22.9068,lng:-43.1729,name:"Rio de Janeiro, Brazil",head:0,
+  {lat:-22.9711,lng:-43.1823,name:"Rio de Janeiro, Brazil",head:90,
    h:"Portuguese signs with tildes and cedillas. Tropical vegetation. Steep forested hills rise right behind the city."},
-  {lat:41.9028,lng:12.4964,name:"Rome, Italy",head:120,
+  {lat:41.8902,lng:12.4922,name:"Rome, Italy",head:120,
    h:"Black basalt cobblestones. Italian signs. Ochre and terracotta building render. Ancient ruins casually integrated into the modern streetscape."},
-  {lat:55.7558,lng:37.6173,name:"Moscow, Russia",head:330,
+  {lat:55.7539,lng:37.6208,name:"Moscow, Russia",head:90,
    h:"Cyrillic script on all signs. Wide Soviet-era boulevards, monumental Stalinist towers. Orthodox gold onion domes on the skyline."},
-  {lat:30.0626,lng:31.2497,name:"Cairo, Egypt",head:200,
+  {lat:30.0459,lng:31.2243,name:"Cairo, Egypt",head:45,
    h:"Arabic script, right-to-left. Desert dust coats every building. Islamic arches and mashrabiya screens. Intense sunlight, palm trees."},
-  {lat:1.2904,lng:103.8520,name:"Singapore",head:60,
+  {lat:1.2831,lng:103.8602,name:"Singapore",head:60,
    h:"Four-language signs: English, Chinese, Malay, Tamil. Immaculate streets. Tropical greenery integrated into modern high-rises."},
-  {lat:41.0082,lng:28.9784,name:"Istanbul, Turkey",head:150,
+  {lat:41.0138,lng:28.9550,name:"Istanbul, Turkey",head:150,
    h:"Turkish Latin script with dotless-i, g-breve, s-cedilla. Pencil-thin Ottoman minarets. Byzantine stonework in city walls."},
-  {lat:19.4326,lng:-99.1332,name:"Mexico City, Mexico",head:0,
+  {lat:19.4270,lng:-99.1676,name:"Mexico City, Mexico",head:90,
    h:"Spanish signs. Colonial baroque in dark volcanic stone. Colourful stucco facades. High altitude — 2,240m — affects vegetation."},
-  {lat:37.5665,lng:126.9780,name:"Seoul, South Korea",head:80,
+  {lat:37.5700,lng:126.9784,name:"Seoul, South Korea",head:80,
    h:"Hangul script: unique syllabic blocks visually unlike any Chinese or Japanese script. Modern glass towers beside traditional tile-roofed houses."},
-  {lat:51.5074,lng:-0.1278,name:"London, UK",head:300,
+  {lat:51.5007,lng:-0.1246,name:"London, UK",head:300,
    h:"Left-hand traffic, red double-deckers, Victorian red-brick terraces. English pub signage. Grey overcast skies. Cast-iron lamp posts."},
-  {lat:41.7151,lng:44.8271,name:"Tbilisi, Georgia",head:110,
+  {lat:41.6938,lng:44.8015,name:"Tbilisi, Georgia",head:90,
    h:"Unique Georgian Mkhedruli script — round flowing letters unlike any other. Ornate wooden balconies. Orthodox church domes. Caucasus mountains nearby."},
-  {lat:13.7563,lng:100.5018,name:"Bangkok, Thailand",head:250,
+  {lat:13.7469,lng:100.5347,name:"Bangkok, Thailand",head:250,
    h:"Thai script everywhere — curvilinear with vowel markers above and below consonants. Golden Buddhist chedi spires. Tuk-tuks. Dense tropical greenery."},
-  {lat:28.6139,lng:77.2090,name:"New Delhi, India",head:180,
+  {lat:28.6129,lng:77.2295,name:"New Delhi, India",head:270,
    h:"Bilingual Devanagari (Hindi) and English signs. Auto-rickshaws in yellow-green livery. Mughal sandstone and British Raj colonial buildings side by side."},
   {lat:-34.6037,lng:-58.3816,name:"Buenos Aires, Argentina",head:90,
    h:"Spanish signs. Wide Haussmann-style boulevards with ornate French and Italian apartment buildings. Cobblestone barrio streets. Temperate climate."},
-  {lat:52.2297,lng:21.0122,name:"Warsaw, Poland",head:40,
+  {lat:52.2319,lng:21.0067,name:"Warsaw, Poland",head:90,
    h:"Polish Latin script with distinctive diacritics: ą ę ś ź ż ó ł. Communist panel-block housing alongside reconstructed baroque buildings."},
-  {lat:59.9311,lng:30.3609,name:"St. Petersburg, Russia",head:200,
+  {lat:59.9356,lng:30.3251,name:"St. Petersburg, Russia",head:90,
    h:"Cyrillic. Imperial Russian grandeur: pastel baroque palaces, wide canals — the Venice of the North. Low northern light year-round."},
-  {lat:-26.2041,lng:28.0473,name:"Johannesburg, South Africa",head:310,
+  {lat:-26.2044,lng:28.0416,name:"Johannesburg, South Africa",head:180,
    h:"English and Afrikaans (both Latin script). Modernist offices mixed with low-rise suburban bungalows. Jacaranda trees. Right-hand traffic. Highveld plateau."}
 ];
 
@@ -486,8 +487,7 @@ function initGameMap(){
     minZoom:1,maxZoom:18
   });
 
-  // CartoDB Dark Matter NO LABELS — real map, rivers, coastlines, roads — zero city labels
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
     attribution:'&copy; <a href="https://carto.com/">CARTO</a>',
     subdomains:'abcd',
     maxZoom:19
@@ -645,7 +645,9 @@ function initDivider(){
    GAME FLOW
 ═══════════════════════════════════════════════ */
 function startGame(){
-  S.round=0;S.score=0;S.roundScores=[];S.usedIdx=[];
+  S.round=0;S.score=0;S.roundScores=[];
+  // Restore cross-session used pool so no city repeats until all are seen
+  S.usedIdx=JSON.parse(localStorage.getItem('gs_used')||'[]');
   nextRound();
 }
 
@@ -653,8 +655,15 @@ function nextRound(){
   S.round++;S.gLat=null;S.gLng=null;S.guessMarker=null;
   if(S.round>S.totalRounds){showFinal();return;}
   var avail=LOCS.map(function(_,i){return i}).filter(function(i){return S.usedIdx.indexOf(i)===-1});
+  if(avail.length===0){
+    // All locations seen — reset the pool for the next cycle
+    S.usedIdx=[];
+    localStorage.removeItem('gs_used');
+    avail=LOCS.map(function(_,i){return i});
+  }
   var idx=avail[Math.floor(Math.random()*avail.length)];
   S.usedIdx.push(idx);
+  localStorage.setItem('gs_used',JSON.stringify(S.usedIdx));
   S.curLoc=LOCS[idx];
 
   showScreen('game');
@@ -686,16 +695,17 @@ function loadSV(){
   ifr.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:none';
   ifr.setAttribute('allowfullscreen','');
   var head=loc.head||180;
-  ifr.src='https://maps.google.com/maps?q=&layer=c&cbll='+loc.lat+','+loc.lng+'&cbp=12,'+head+',0,0,0&output=svembed&hl=en';
+  ifr.src='https://maps.google.com/maps?layer=c&cbll='+loc.lat+','+loc.lng+'&cbp=12,'+head+',0,0,0&output=svembed&hl=en';
 
   var loaded=false;
-  ifr.onload=function(){loaded=true;setTimeout(function(){document.getElementById('sv-loader').classList.add('gone');},600);};
+  ifr.onload=function(){loaded=true;setTimeout(function(){document.getElementById('sv-loader').classList.add('gone');},400);};
+  ifr.onerror=function(){document.getElementById('sv-loader').classList.add('gone');showFB(loc);};
   cont.appendChild(ifr);
 
-  // Fallback if nothing loads after 8s
+  // Fallback if Street View doesn't confirm load within 5s
   setTimeout(function(){
     if(!loaded){document.getElementById('sv-loader').classList.add('gone');showFB(loc);}
-  },8000);
+  },5000);
 }
 
 function showFB(loc){
