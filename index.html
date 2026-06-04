@@ -709,12 +709,30 @@ function submitGuess(){
 /* ═══════════════════════════════════════════════
    RESULT
 ═══════════════════════════════════════════════ */
+function countUp(el,target,colorClass,duration){
+  var start=performance.now();
+  var verdict=el.nextElementSibling;
+  el.className='res-pts';
+  if(verdict)verdict.style.opacity='0';
+  function step(now){
+    var t=Math.min((now-start)/duration,1);
+    var ease=1-Math.pow(1-t,3);
+    el.textContent=Math.round(ease*target).toLocaleString();
+    if(t<1){
+      requestAnimationFrame(step);
+    } else {
+      el.textContent=target.toLocaleString();
+      el.className='res-pts '+colorClass;
+      if(verdict){verdict.style.transition='opacity .35s';verdict.style.opacity='1';}
+    }
+  }
+  requestAnimationFrame(step);
+}
+
 function showResult(gl,gn,dist,pts){
   var pct=pts/5000;
+  var colorClass=pct>.85?'cg':pct>.55?'cp':pct>.25?'co':'cr';
   document.getElementById('res-round-lbl').textContent='ROUND '+S.round+' / '+S.totalRounds;
-  var pEl=document.getElementById('res-pts');
-  pEl.textContent=pts.toLocaleString();
-  pEl.className='res-pts '+(pct>.85?'cg':pct>.55?'cp':pct>.25?'co':'cr');
   document.getElementById('res-verdict').textContent=
     pct>.85?'\ud83c\udfc6 Outstanding!':pct>.55?'\ud83c\udfaf Great guess!':pct>.25?'\ud83d\udc4d Not bad':'\ud83d\udccd Keep exploring';
   var distStr=dist<1?'< 1':dist<10?dist.toFixed(1):Math.round(dist).toLocaleString();
@@ -724,6 +742,7 @@ function showResult(gl,gn,dist,pts){
   document.getElementById('res-total').textContent=S.score.toLocaleString()+' pts';
   document.getElementById('btn-nxt').textContent=S.round>=S.totalRounds?'See Final Score \u2192':'Round '+(S.round+1)+' \u2192';
   showScreen('result');
+  countUp(document.getElementById('res-pts'),pts,colorClass,1200);
   setTimeout(function(){initResultMap(gl,gn,S.curLoc.lat,S.curLoc.lng);},100);
   if(pts>4200)confetti();
 }
