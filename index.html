@@ -543,12 +543,24 @@ function initResultMap(gLat,gLng,tLat,tLng){
   L.marker([gLat,gLng],{icon:gIcon}).addTo(S.resMap)
     .bindPopup('<b style="color:#ff6b35">&#9679;</b> Your guess');
 
-  L.polyline([[gLat,gLng],[tLat,tLng]],{
-    color:'#00e5a0',weight:1.5,dashArray:'6 5',opacity:.65
+  var line=L.polyline([[gLat,gLng],[tLat,tLng]],{
+    color:'#00e5a0',weight:1.5,opacity:.75
   }).addTo(S.resMap);
 
   var bounds=L.latLngBounds([[gLat,gLng],[tLat,tLng]]);
   S.resMap.fitBounds(bounds.pad(0.35));
+
+  S.resMap.once('moveend',function(){
+    var pathEl=line.getElement();
+    if(!pathEl)return;
+    var len=pathEl.getTotalLength();
+    pathEl.style.strokeDasharray=len+' '+len;
+    pathEl.style.strokeDashoffset=len;
+    pathEl.style.transition='none';
+    pathEl.getBoundingClientRect();
+    pathEl.style.transition='stroke-dashoffset 800ms ease-in-out';
+    pathEl.style.strokeDashoffset='0';
+  });
 }
 
 /* ═══════════════════════════════════════════════
