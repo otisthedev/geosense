@@ -550,7 +550,7 @@ function initResultMap(gLat,gLng,tLat,tLng,noGuess){
   });
 
   L.marker([tLat,tLng],{icon:tIcon}).addTo(S.resMap)
-    .bindPopup(noGuess?'<b style="color:#00e5a0">&#9679;</b> '+S.curLoc.name+' — no guess placed':'<b style="color:#00e5a0">&#9679;</b> Target').openPopup();
+    .bindPopup(noGuess?'<b style="color:#00e5a0">&#9679;</b> '+S.curLoc.name+' — no guess placed':'<b style="color:#00e5a0">&#9679;</b> Target');
 
   if(!noGuess){
     var gIcon=L.divIcon({
