@@ -22,8 +22,9 @@
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--t);font-family:'Syne',sans-serif;touch-action:none}
 
 /* ══ SCREENS ══ */
-.screen{display:none;position:fixed;inset:0;z-index:10;overflow:hidden}
+.screen{display:none;position:fixed;inset:0;z-index:10;overflow:hidden;opacity:0;transition:opacity .18s ease}
 .screen.active{display:flex;flex-direction:column}
+.screen.visible{opacity:1}
 
 /* ══════════════════════════════════════
    SPLASH
@@ -279,7 +280,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 <body>
 
 <!-- ═══ SPLASH ═══ -->
-<div id="splash" class="screen active">
+<div id="splash" class="screen active visible">
   <div class="rings"><div class="ring"></div><div class="ring"></div><div class="ring"></div></div>
   <div class="sc">
     <div class="sc-tag">// street level geography game</div>
@@ -449,8 +450,14 @@ var S={
    SCREENS
 ═══════════════════════════════════════════════ */
 function showScreen(id){
-  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
-  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.screen').forEach(function(s){
+    s.classList.remove('active','visible');
+  });
+  var next=document.getElementById(id);
+  next.classList.add('active');
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){next.classList.add('visible');});
+  });
 }
 function showSplash(){
   clearInterval(S.timerInt);
