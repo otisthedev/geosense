@@ -249,6 +249,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 .fin-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--g),var(--p),var(--o))}
 .fin-body{padding:3rem 2rem 2rem;text-align:center}
 .fin-tag{font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.28em;color:var(--g);margin-bottom:.85rem;text-transform:uppercase}
+.fin-pb{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);margin-bottom:.5rem;min-height:1.2em}
 .fin-score{font-size:clamp(4rem,16vw,7rem);font-weight:800;line-height:1;letter-spacing:-.04em;
   background:linear-gradient(128deg,var(--g),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .fin-of{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);margin-bottom:.75rem}
@@ -279,6 +280,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
       <div><span>ROUNDS</span><b>5</b></div>
       <div><span>MAX SCORE</span><b>25,000</b></div>
       <div><span>TIME</span><b>90s</b></div>
+      <div id="pb-stat" style="display:none"><span>YOUR BEST</span><b id="pb-val">—</b></div>
     </div>
   </div>
 </div>
@@ -365,6 +367,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
       <div class="fin-tag">// game complete</div>
       <div class="fin-score" id="fin-score">0</div>
       <div class="fin-of">out of 25,000 points</div>
+      <div class="fin-pb" id="fin-pb"></div>
       <div class="fin-grade" id="fin-grade"></div>
       <div class="chips" id="fin-chips"></div>
     </div>
@@ -439,7 +442,18 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
   document.getElementById(id).classList.add('active');
 }
-function showSplash(){clearInterval(S.timerInt);showScreen('splash')}
+function showSplash(){
+  clearInterval(S.timerInt);
+  var pb=getPB();
+  var pbStat=document.getElementById('pb-stat');
+  if(pb>0){
+    document.getElementById('pb-val').textContent=pb.toLocaleString();
+    pbStat.style.display='';
+  } else {
+    pbStat.style.display='none';
+  }
+  showScreen('splash');
+}
 
 /* ═══════════════════════════════════════════════
    LEAFLET GAME MAP
@@ -717,9 +731,33 @@ function showResult(gl,gn,dist,pts){
 /* ═══════════════════════════════════════════════
    FINAL
 ═══════════════════════════════════════════════ */
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   PERSONAL BEST
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+function getPB(){return parseInt(localStorage.getItem('gs_pb')||'0',10);}
+function setPB(n){localStorage.setItem('gs_pb',n);}
+
 function showFinal(){
   var pct=S.score/25000;
+  var pb=getPB();
+  var isNewPB=S.score>pb;
+  if(isNewPB)setPB(S.score);
+
   document.getElementById('fin-score').textContent=S.score.toLocaleString();
+
+  var pbEl=document.getElementById('fin-pb');
+  if(isNewPB&&pb>0){
+    pbEl.textContent='\u2b06 New personal best! (was '+pb.toLocaleString()+')';
+    pbEl.style.color='var(--g)';
+  } else if(isNewPB){
+    pbEl.textContent='First game complete \u2014 personal best set!';
+    pbEl.style.color='var(--g)';
+  } else {
+    var diff=pb-S.score;
+    pbEl.textContent='Best: '+pb.toLocaleString()+' \u2014 '+diff.toLocaleString()+' pts away';
+    pbEl.style.color='';
+  }
+
   document.getElementById('fin-grade').textContent=
     pct>.9?'\ud83c\udfc6 Geographic genius!':pct>.7?'\ud83c\udf0d World explorer':pct>.5?'\ud83d\udccd Getting there':'\ud83e\udded Keep traveling!';
   document.getElementById('fin-chips').innerHTML=S.roundScores.map(function(s,i){
@@ -751,6 +789,11 @@ function confetti(){
 ═══════════════════════════════════════════════ */
 window.addEventListener('load',function(){
   initDivider();
+  var pb=getPB();
+  if(pb>0){
+    document.getElementById('pb-val').textContent=pb.toLocaleString();
+    document.getElementById('pb-stat').style.display='';
+  }
 });
 </script>
 </body>
