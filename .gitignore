@@ -1,4 +1,11 @@
 node_modules/
+dist/
 screenshots/
 package-lock.json
 capture.js
+gen-icons.js
+pr-body.txt
+.claude/
+.vercel
+.env
+.env.local

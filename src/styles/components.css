@@ -1,0 +1,75 @@
+/* Shared badge */
+.badge {
+  background: var(--s2);
+  border: 1px solid var(--brd);
+  padding: .2rem .6rem;
+  font-family: 'DM Mono', monospace;
+  font-size: .62rem;
+  color: var(--t);
+  font-weight: 600;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  white-space: nowrap;
+}
+
+/* Spinner */
+.spin {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--brd);
+  border-top-color: var(--g);
+  border-radius: 50%;
+  animation: spin .75s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Score chips */
+.chip {
+  background: var(--s2);
+  border: 1px solid var(--brd);
+  padding: .28rem .65rem;
+  font-family: 'DM Mono', monospace;
+  font-size: .66rem;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+.chip.hi { border-color: var(--g); color: var(--g); }
+.chip.md { border-color: var(--p); color: var(--p); }
+.chip.lo { border-color: var(--o); color: var(--o); }
+
+/* Primary CTA button */
+.btn-nxt {
+  flex: 1;
+  background: var(--g);
+  color: #000;
+  border: none;
+  padding: .75rem;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: .82rem;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  transition: .2s;
+}
+
+.btn-nxt:hover, .btn-nxt:active { background: #fff; }
+
+/* Secondary button */
+.btn-sec {
+  background: transparent;
+  color: var(--td);
+  border: 1px solid var(--brd);
+  padding: .75rem 1.1rem;
+  font-family: 'Syne', sans-serif;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: .2s;
+  text-transform: uppercase;
+}
+
+.btn-sec:hover, .btn-sec:active { color: var(--t); border-color: var(--td); }

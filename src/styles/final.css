@@ -1,0 +1,90 @@
+#final {
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 100%, rgba(124,106,255,.07), transparent),
+    var(--bg);
+}
+
+.fin-card {
+  background: var(--s1);
+  border: 1px solid var(--brd);
+  max-width: 480px;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.fin-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--g), var(--p), var(--o));
+}
+
+.fin-body {
+  padding: 3rem 2rem 2rem;
+  text-align: center;
+}
+
+.fin-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: .58rem;
+  letter-spacing: .28em;
+  color: var(--g);
+  margin-bottom: .85rem;
+  text-transform: uppercase;
+}
+
+.fin-pb {
+  font-family: 'DM Mono', monospace;
+  font-size: .68rem;
+  color: var(--td);
+  margin-bottom: .5rem;
+  min-height: 1.2em;
+}
+
+.fin-score {
+  font-size: clamp(4rem, 16vw, 7rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -.04em;
+  background: linear-gradient(128deg, var(--g), var(--p));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.fin-of {
+  font-family: 'DM Mono', monospace;
+  font-size: .7rem;
+  color: var(--td);
+  margin-bottom: .75rem;
+}
+
+.fin-grade {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1.75rem;
+  color: var(--t);
+}
+
+.chips {
+  display: flex;
+  gap: .4rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: .5rem;
+}
+
+.fin-foot {
+  padding: 1.1rem 2rem;
+  border-top: 1px solid var(--brd);
+  display: flex;
+  gap: .6rem;
+}

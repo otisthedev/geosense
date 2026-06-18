@@ -1,0 +1,120 @@
+#result {
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(0,229,160,.04), transparent),
+    var(--bg);
+}
+
+.res-card {
+  background: var(--s1);
+  border: 1px solid var(--brd);
+  width: 100%;
+  max-width: 680px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.res-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--g), var(--p), var(--o));
+}
+
+.res-top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--brd);
+}
+
+.res-lbl {
+  font-family: 'DM Mono', monospace;
+  font-size: .58rem;
+  letter-spacing: .15em;
+  color: var(--td);
+  margin-bottom: .35rem;
+  text-transform: uppercase;
+}
+
+.res-pts {
+  font-size: clamp(2.4rem, 7vw, 3.8rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -.03em;
+}
+
+.res-pts.cg { color: var(--g); }
+.res-pts.cp { color: var(--p); }
+.res-pts.co { color: var(--o); }
+.res-pts.cr { color: var(--r); }
+
+.res-verdict {
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--td);
+  margin-top: .3rem;
+}
+
+.res-dist-block { text-align: right; }
+
+.res-dist-num {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--t);
+  line-height: 1;
+}
+
+.res-dist-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: .58rem;
+  color: var(--td);
+  margin-top: .2rem;
+}
+
+.res-map-wrap {
+  height: 240px;
+  position: relative;
+  border-bottom: 1px solid var(--brd);
+}
+
+#res-map { width: 100%; height: 100%; }
+
+.res-stats {
+  display: flex;
+  border-bottom: 1px solid var(--brd);
+}
+
+.res-stat {
+  flex: 1;
+  padding: .85rem 1.25rem;
+  border-right: 1px solid var(--brd);
+}
+
+.res-stat:last-child { border-right: none; }
+
+.res-stat-lbl {
+  font-family: 'DM Mono', monospace;
+  font-size: .55rem;
+  letter-spacing: .1em;
+  color: var(--td);
+  text-transform: uppercase;
+  margin-bottom: .25rem;
+}
+
+.res-stat-val { font-size: .88rem; font-weight: 700; color: var(--t); }
+
+.res-foot {
+  padding: 1rem 1.5rem;
+  display: flex;
+  gap: .6rem;
+}

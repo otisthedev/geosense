@@ -1,284 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>GeoSense</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-:root{
-  --bg:#07090e;--s1:#0c1018;--s2:#111827;--brd:#1a2436;
-  --g:#00e5a0;--o:#ff6b35;--p:#7c6aff;--r:#ff3d5a;
-  --t:#cdd9ee;--td:#3d5070;
-}
-html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--t);font-family:'Syne',sans-serif;touch-action:none}
-
-/* ══ SCREENS ══ */
-.screen{display:none;position:fixed;inset:0;z-index:10;overflow:hidden}
-.screen.active{display:flex;flex-direction:column}
-
-/* ══════════════════════════════════════
-   SPLASH
-══════════════════════════════════════ */
-#splash{
-  align-items:center;justify-content:center;
-  background:
-    radial-gradient(ellipse 80% 55% at 15% 105%,rgba(0,229,160,.08) 0%,transparent 60%),
-    radial-gradient(ellipse 55% 65% at 88% -5%,rgba(124,106,255,.07) 0%,transparent 60%),
-    var(--bg);
-  overflow:hidden}
-
-.rings{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.ring{position:absolute;border-radius:50%;border:1px solid;top:50%;left:50%;transform:translate(-50%,-50%)}
-.ring:nth-child(1){width:min(520px,90vw);height:min(520px,90vw);border-color:rgba(0,229,160,.055);animation:rot 35s linear infinite}
-.ring:nth-child(2){width:min(800px,140vw);height:min(800px,140vw);border-color:rgba(124,106,255,.04);animation:rot 55s linear infinite reverse}
-.ring:nth-child(3){width:min(1100px,190vw);height:min(1100px,190vw);border-color:rgba(255,107,53,.03);animation:rot 80s linear infinite}
-@keyframes rot{to{transform:translate(-50%,-50%) rotate(360deg)}}
-
-.sc{position:relative;z-index:2;text-align:center;padding:2.5rem 2rem;max-width:520px;width:100%}
-.sc-tag{font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.35em;color:var(--g);margin-bottom:1.5rem;opacity:0;animation:up .5s .1s ease forwards;text-transform:uppercase}
-.sc-title{font-size:clamp(4rem,13vw,7.5rem);font-weight:800;line-height:.88;letter-spacing:-.04em;margin-bottom:1.25rem;opacity:0;animation:up .5s .25s ease forwards}
-.sc-title em{font-style:normal;background:linear-gradient(128deg,var(--g) 0%,var(--p) 55%,var(--o) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.sc-sub{font-size:.95rem;color:var(--td);line-height:1.8;max-width:360px;margin:0 auto 2.75rem;opacity:0;animation:up .5s .4s ease forwards}
-.sc-btn{background:var(--g);color:#000;border:none;padding:1.05rem 3.5rem;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;letter-spacing:.055em;text-transform:uppercase;cursor:pointer;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);transition:.2s;opacity:0;animation:up .5s .55s ease forwards}
-.sc-btn:hover,.sc-btn:active{background:#fff;transform:translateY(-2px);box-shadow:0 12px 36px rgba(0,229,160,.22)}
-.sc-stats{display:flex;gap:2.5rem;justify-content:center;margin-top:2rem;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);opacity:0;animation:up .5s .7s ease forwards;flex-wrap:wrap}
-.sc-stats b{color:var(--t);display:block;font-size:.9rem;margin-top:.2rem}
-@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-
-/* ══════════════════════════════════════
-   GAME LAYOUT
-══════════════════════════════════════ */
-#game{flex-direction:column}
-
-/* Header — slim, everything in one row */
-.hdr{
-  display:flex;align-items:center;padding:0 1rem;height:44px;
-  background:rgba(7,9,14,.98);border-bottom:1px solid var(--brd);
-  flex-shrink:0;z-index:300;gap:.75rem}
-.hdr-logo{font-size:.85rem;font-weight:800;color:var(--g);letter-spacing:-.01em;white-space:nowrap;margin-right:.25rem}
-.hdr-divider{width:1px;height:18px;background:var(--brd);flex-shrink:0}
-.badge{background:var(--s2);border:1px solid var(--brd);padding:.2rem .6rem;
-  font-family:'DM Mono',monospace;font-size:.62rem;color:var(--t);font-weight:600;
-  clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);white-space:nowrap}
-.hdr-spacer{flex:1}
-.tmr-wrap{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);white-space:nowrap;display:flex;align-items:center;gap:.3rem}
-.tmr-num{font-size:.82rem;font-weight:700;min-width:2ch;text-align:right;transition:color .3s}
-.hdr-score{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);white-space:nowrap}
-.hdr-score b{color:var(--g);font-size:.85rem;font-weight:400;margin-left:.3rem}
-
-/* Timer bar */
-.tbar{height:2px;background:var(--s2);flex-shrink:0}
-.tbar-fill{height:100%;background:linear-gradient(90deg,var(--g),var(--p));transition:width 1s linear;width:100%;will-change:width}
-.tbar-fill.warn{background:linear-gradient(90deg,var(--o),var(--r))}
-
-/* Workspace — LEFT/RIGHT split on desktop */
-.workspace{flex:1;display:flex;flex-direction:row;min-height:0;overflow:hidden;position:relative}
-
-/* ── Street View panel (LEFT) ── */
-.sv-panel{
-  flex-shrink:0;position:relative;overflow:hidden;background:#000;
-  width:62%;        /* default — user drags divider */
-  min-width:200px;
-}
-
-.sv-tag{
-  position:absolute;top:.65rem;left:.65rem;z-index:5;pointer-events:none;
-  background:rgba(7,9,14,.78);backdrop-filter:blur(8px);
-  border:1px solid rgba(255,255,255,.07);
-  padding:.2rem .55rem;font-family:'DM Mono',monospace;
-  font-size:.55rem;letter-spacing:.12em;color:rgba(255,255,255,.35);text-transform:uppercase}
-
-.sv-loader{
-  position:absolute;inset:0;z-index:6;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  background:var(--bg);gap:.85rem;transition:opacity .5s}
-.sv-loader.gone{opacity:0;pointer-events:none}
-.spin{width:36px;height:36px;border:2px solid var(--brd);border-top-color:var(--g);border-radius:50%;animation:spin .75s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.sv-loader p{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td);letter-spacing:.15em}
-
-/* Fallback */
-.sv-fallback{
-  position:absolute;inset:0;z-index:5;display:none;
-  flex-direction:column;align-items:center;justify-content:center;
-  background:var(--s1);gap:.75rem;padding:1.5rem;text-align:center}
-.sv-fallback.show{display:flex}
-.fb-tag{font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.2em;color:var(--g);text-transform:uppercase}
-.fb-hint{font-size:.8rem;color:var(--td);line-height:1.65;max-width:360px}
-.fb-link{display:inline-block;background:var(--g);color:#000;padding:.55rem 1.35rem;
-  font-family:'Syne',sans-serif;font-weight:700;font-size:.75rem;cursor:pointer;
-  clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%);text-decoration:none;transition:.15s}
-.fb-link:hover{background:#fff}
-
-/* ── Drag divider (VERTICAL — ew-resize) ── */
-.divider{
-  width:5px;flex-shrink:0;background:var(--brd);cursor:ew-resize;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .15s;position:relative;z-index:100;
-  user-select:none;touch-action:none}
-.divider:hover,.divider.drag{background:var(--p)}
-.divider::after{
-  content:'';display:block;width:2px;height:28px;
-  background:rgba(255,255,255,.18);border-radius:2px;transition:background .15s}
-.divider:hover::after,.divider.drag::after{background:rgba(255,255,255,.55)}
-
-/* ── Map panel (RIGHT) ── */
-.map-panel{
-  flex:1;min-width:0;position:relative;display:flex;flex-direction:column;overflow:hidden}
-
-/* Mobile: stack vertically */
-@media(max-width:700px){
-  .workspace{flex-direction:column}
-  .sv-panel{width:auto!important;height:50%;min-width:0;min-height:120px}
-  .divider{width:auto;height:5px;cursor:ns-resize}
-  .divider::after{width:28px;height:2px}
-}
-
-/* Leaflet container fills map-panel */
-#leaflet-map{flex:1;min-height:0;position:relative;z-index:1}
-
-/* Floating guess button — over the map */
-.guess-float{
-  position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);
-  z-index:400;pointer-events:all;
-  display:flex;align-items:center;gap:.6rem;
-  background:rgba(7,9,14,.9);backdrop-filter:blur(10px);
-  border:1px solid var(--brd);padding:.4rem .4rem .4rem 1rem;
-  transition:border-color .2s, box-shadow .2s;
-  box-shadow:0 4px 24px rgba(0,0,0,.5)}
-.guess-float.pinned{border-color:var(--g);box-shadow:0 4px 24px rgba(0,229,160,.15)}
-.guess-float-lbl{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);white-space:nowrap;letter-spacing:.06em}
-.guess-float.pinned .guess-float-lbl{color:var(--t)}
-.btn-guess{
-  background:var(--brd);color:var(--td);border:none;padding:.6rem 1.4rem;
-  font-family:'Syne',sans-serif;font-weight:700;font-size:.78rem;letter-spacing:.05em;
-  text-transform:uppercase;cursor:not-allowed;
-  clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%);transition:.2s}
-.btn-guess.ready{background:var(--g);color:#000;cursor:pointer}
-.btn-guess.ready:hover,.btn-guess.ready:active{background:#fff}
-
-/* Zoom instructions */
-.map-tip{
-  position:absolute;top:.65rem;left:50%;transform:translateX(-50%);
-  z-index:400;pointer-events:none;
-  background:rgba(7,9,14,.78);backdrop-filter:blur(6px);
-  border:1px solid rgba(255,255,255,.07);
-  padding:.22rem .65rem;font-family:'DM Mono',monospace;
-  font-size:.58rem;letter-spacing:.08em;color:rgba(255,255,255,.3);
-  white-space:nowrap;transition:opacity .5s}
-.map-tip.hide{opacity:0}
-
-/* Leaflet overrides — dark no-label tiles take care of labels,
-   but override the chrome to match our theme */
-.leaflet-container{background:#0a0f18!important;font-family:'DM Mono',monospace!important}
-.leaflet-control-zoom{border:1px solid var(--brd)!important;border-radius:0!important;overflow:hidden}
-.leaflet-control-zoom a{
-  background:var(--s2)!important;color:var(--t)!important;
-  border-color:var(--brd)!important;width:28px!important;height:28px!important;
-  line-height:28px!important;font-size:.9rem!important}
-.leaflet-control-zoom a:hover{background:var(--s1)!important;color:var(--g)!important}
-.leaflet-bar{border:none!important;box-shadow:none!important}
-.leaflet-control-attribution{
-  background:rgba(7,9,14,.65)!important;color:rgba(255,255,255,.2)!important;
-  font-size:.5rem!important;padding:2px 5px!important}
-.leaflet-control-attribution a{color:rgba(255,255,255,.3)!important}
-.leaflet-popup-content-wrapper{
-  background:var(--s2)!important;border-radius:0!important;
-  border:1px solid var(--brd)!important;box-shadow:0 4px 20px rgba(0,0,0,.5)!important;
-  color:var(--t)!important;font-family:'DM Mono',monospace!important;font-size:.72rem!important}
-.leaflet-popup-tip{background:var(--s2)!important}
-.leaflet-popup-close-button{color:var(--td)!important;font-size:1rem!important}
-
-/* ══════════════════════════════════════
-   RESULT SCREEN
-══════════════════════════════════════ */
-#result{
-  align-items:center;justify-content:center;padding:1rem;overflow-y:auto;
-  background:radial-gradient(ellipse 80% 50% at 50% 100%,rgba(0,229,160,.04),transparent),var(--bg)}
-
-.res-card{
-  background:var(--s1);border:1px solid var(--brd);
-  width:100%;max-width:680px;position:relative;overflow:hidden;flex-shrink:0}
-.res-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,var(--g),var(--p),var(--o))}
-
-/* Score row */
-.res-top{
-  display:grid;grid-template-columns:1fr auto;align-items:center;gap:1rem;
-  padding:1.25rem 1.5rem;border-bottom:1px solid var(--brd)}
-.res-lbl{font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.15em;color:var(--td);margin-bottom:.35rem;text-transform:uppercase}
-.res-pts{font-size:clamp(2.4rem,7vw,3.8rem);font-weight:800;line-height:1;letter-spacing:-.03em}
-.res-pts.cg{color:var(--g)}.res-pts.cp{color:var(--p)}.res-pts.co{color:var(--o)}.res-pts.cr{color:var(--r)}
-.res-verdict{font-size:.88rem;font-weight:600;color:var(--td);margin-top:.3rem}
-.res-dist-block{text-align:right}
-.res-dist-num{font-size:1.5rem;font-weight:700;color:var(--t);line-height:1}
-.res-dist-sub{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--td);margin-top:.2rem}
-
-/* Result map */
-.res-map-wrap{height:240px;position:relative;border-bottom:1px solid var(--brd)}
-#res-map{width:100%;height:100%}
-
-/* Stats row */
-.res-stats{display:flex;border-bottom:1px solid var(--brd)}
-.res-stat{flex:1;padding:.85rem 1.25rem;border-right:1px solid var(--brd)}
-.res-stat:last-child{border-right:none}
-.res-stat-lbl{font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:.1em;color:var(--td);text-transform:uppercase;margin-bottom:.25rem}
-.res-stat-val{font-size:.88rem;font-weight:700;color:var(--t)}
-
-.res-foot{padding:1rem 1.5rem;display:flex;gap:.6rem}
-.btn-nxt{flex:1;background:var(--g);color:#000;border:none;padding:.75rem;
-  font-family:'Syne',sans-serif;font-weight:700;font-size:.82rem;letter-spacing:.05em;
-  text-transform:uppercase;cursor:pointer;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);transition:.2s}
-.btn-nxt:hover,.btn-nxt:active{background:#fff}
-.btn-sec{background:transparent;color:var(--td);border:1px solid var(--brd);
-  padding:.75rem 1.1rem;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:600;
-  cursor:pointer;transition:.2s;text-transform:uppercase}
-.btn-sec:hover,.btn-sec:active{color:var(--t);border-color:var(--td)}
-
-/* ══════════════════════════════════════
-   FINAL SCREEN
-══════════════════════════════════════ */
-#final{
-  align-items:center;justify-content:center;padding:1.5rem;overflow-y:auto;
-  background:radial-gradient(ellipse 70% 60% at 50% 100%,rgba(124,106,255,.07),transparent),var(--bg)}
-.fin-card{background:var(--s1);border:1px solid var(--brd);max-width:480px;width:100%;position:relative;overflow:hidden}
-.fin-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--g),var(--p),var(--o))}
-.fin-body{padding:3rem 2rem 2rem;text-align:center}
-.fin-tag{font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.28em;color:var(--g);margin-bottom:.85rem;text-transform:uppercase}
-.fin-score{font-size:clamp(4rem,16vw,7rem);font-weight:800;line-height:1;letter-spacing:-.04em;
-  background:linear-gradient(128deg,var(--g),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.fin-of{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);margin-bottom:.75rem}
-.fin-grade{font-size:1.25rem;font-weight:700;margin-bottom:1.75rem;color:var(--t)}
-.chips{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;margin-bottom:.5rem}
-.chip{background:var(--s2);border:1px solid var(--brd);padding:.28rem .65rem;
-  font-family:'DM Mono',monospace;font-size:.66rem;
-  clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}
-.chip.hi{border-color:var(--g);color:var(--g)}.chip.md{border-color:var(--p);color:var(--p)}.chip.lo{border-color:var(--o);color:var(--o)}
-.fin-foot{padding:1.1rem 2rem;border-top:1px solid var(--brd);display:flex;gap:.6rem}
-
-/* confetti */
-.cf{position:fixed;pointer-events:none;z-index:9999;width:7px;height:7px;animation:cff linear forwards}
-@keyframes cff{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(110vh) rotate(540deg);opacity:0}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoSense</title>
+  <meta name="description" content="A daily street-level geography puzzle game">
+  <meta name="theme-color" content="#07090e">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+  <script type="module" src="/src/main.ts"></script>
 </head>
 <body>
 
 <!-- ═══ SPLASH ═══ -->
-<div id="splash" class="screen active">
-  <div class="rings"><div class="ring"></div><div class="ring"></div><div class="ring"></div></div>
+<div id="splash" class="screen active visible">
+  <div class="rings">
+    <div class="ring"></div>
+    <div class="ring"></div>
+    <div class="ring"></div>
+  </div>
   <div class="sc">
     <div class="sc-tag">// street level geography game</div>
     <h1 class="sc-title">Geo<em>Sense</em></h1>
     <p class="sc-sub">Drop into a real street anywhere on Earth. Explore the view, then pin your guess on the map.</p>
-    <button class="sc-btn" onclick="startGame()">Start Playing</button>
+    <div class="sc-btn-row">
+      <button class="sc-btn" id="btn-start">Start Playing</button>
+      <button class="sc-mp-btn" id="btn-mp" hidden>Multiplayer</button>
+    </div>
     <div class="sc-stats">
       <div><span>ROUNDS</span><b>5</b></div>
       <div><span>MAX SCORE</span><b>25,000</b></div>
       <div><span>TIME</span><b>90s</b></div>
+      <div id="pb-stat" style="display:none"><span>YOUR BEST</span><b id="pb-val">—</b></div>
     </div>
   </div>
 </div>
@@ -286,7 +43,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 <!-- ═══ GAME ═══ -->
 <div id="game" class="screen">
 
-  <!-- Slim header -->
+  <!-- Header -->
   <div class="hdr">
     <div class="hdr-logo">GeoSense</div>
     <div class="hdr-divider"></div>
@@ -298,19 +55,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
   </div>
   <div class="tbar"><div class="tbar-fill" id="tbar"></div></div>
 
+  <!-- MP player status bar (visible only in multiplayer) -->
+  <div class="mp-bar" id="mp-bar" hidden>
+    <span class="mp-bar-label">Players:</span>
+    <div class="mp-bar-players" id="mp-bar-players"></div>
+  </div>
+
   <!-- Workspace -->
-  <div class="workspace" id="workspace">
+  <div class="workspace" id="workspace" style="position:relative">
 
     <!-- Street View -->
     <div class="sv-panel" id="sv-panel">
-      <div class="sv-loader" id="sv-loader"><div class="spin"></div><p>LOADING STREET VIEW...</p></div>
+      <div class="sv-loader" id="sv-loader">
+        <div class="spin"></div>
+        <p>LOADING STREET VIEW...</p>
+      </div>
       <div class="sv-tag">STREET VIEW — DRAG TO LOOK AROUND</div>
       <div id="sv-content" style="position:absolute;inset:0;width:100%;height:100%"></div>
       <div class="sv-fallback" id="sv-fallback">
         <div class="fb-tag">Round <span id="fb-rnd">1</span> — No Street View available</div>
         <div style="font-size:2rem">&#127758;</div>
         <div class="fb-hint" id="fb-hint"></div>
-        <a class="fb-link" id="fb-link" target="_blank">Open in Google Maps &#8599;</a>
+        <a class="fb-link" id="fb-link" target="_blank" rel="noopener noreferrer">Open in Google Maps &#8599;</a>
         <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--td);margin-top:.5rem">Use the clue above to guess on the map</div>
       </div>
     </div>
@@ -324,7 +90,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
       <div id="leaflet-map"></div>
       <div class="guess-float" id="guess-float">
         <span class="guess-float-lbl" id="guess-lbl">Drop a pin to guess</span>
-        <button class="btn-guess" id="btn-guess" onclick="submitGuess()">Guess</button>
+        <button class="btn-guess" id="btn-guess">Guess</button>
+      </div>
+    </div>
+
+    <!-- MP waiting overlay (shown after guess submitted in MP mode) -->
+    <div class="mp-wait" id="mp-wait" hidden>
+      <div class="mp-wait-score" id="mp-wait-score">0</div>
+      <div class="mp-wait-label">pts this round</div>
+      <div class="mp-wait-dist" id="mp-wait-dist"></div>
+      <div class="mp-wait-sep"></div>
+      <div class="mp-wait-players" id="mp-wait-players"></div>
+      <div class="mp-wait-msg">
+        Waiting for others
+        <div class="mp-wait-dots"><span></span><span></span><span></span></div>
       </div>
     </div>
 
@@ -352,8 +131,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
       <div class="res-stat"><div class="res-stat-lbl">Total</div><div class="res-stat-val" id="res-total">—</div></div>
     </div>
     <div class="res-foot">
-      <button class="btn-sec" onclick="showSplash()">Quit</button>
-      <button class="btn-nxt" id="btn-nxt" onclick="nextRound()">Next Round &#8594;</button>
+      <button class="btn-sec" id="btn-quit">Quit</button>
+      <button class="btn-nxt" id="btn-nxt">Next Round &#8594;</button>
     </div>
   </div>
 </div>
@@ -365,393 +144,126 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
       <div class="fin-tag">// game complete</div>
       <div class="fin-score" id="fin-score">0</div>
       <div class="fin-of">out of 25,000 points</div>
+      <div class="fin-pb" id="fin-pb"></div>
       <div class="fin-grade" id="fin-grade"></div>
       <div class="chips" id="fin-chips"></div>
     </div>
     <div class="fin-foot">
-      <button class="btn-sec" style="flex:.4" onclick="showSplash()">Menu</button>
-      <button class="btn-nxt" style="flex:1" onclick="startGame()">Play Again</button>
+      <button class="btn-sec" id="btn-menu" style="flex:.4">Menu</button>
+      <button class="btn-nxt" id="btn-play-again" style="flex:1">Play Again</button>
     </div>
   </div>
 </div>
 
-<script>
-/* ═══════════════════════════════════════════════
-   LOCATIONS
-═══════════════════════════════════════════════ */
-var LOCS=[
-  {lat:48.8584,lng:2.2945,name:"Paris, France",head:180,
-   h:"19th-century European: limestone facades, wrought-iron balconies, zinc mansard rooftops. Latin script with Romance-language accent marks."},
-  {lat:35.6762,lng:139.6503,name:"Tokyo, Japan",head:90,
-   h:"Signs mix logographic, cursive syllabic, and angular syllabic scripts. Extremely dense streets. Vending machines on almost every corner."},
-  {lat:-33.8688,lng:151.2093,name:"Sydney, Australia",head:45,
-   h:"English signage, left-hand traffic, British-derived architecture. Subtropical vegetation — eucalyptus trees. Southern hemisphere seasons are reversed."},
-  {lat:40.7580,lng:-73.9855,name:"New York, USA",head:270,
-   h:"American grid streets. Bright fire hydrants, yellow cabs, wooden utility poles, speed signs in mph. English-only signs."},
-  {lat:-22.9068,lng:-43.1729,name:"Rio de Janeiro, Brazil",head:0,
-   h:"Portuguese signs with tildes and cedillas. Tropical vegetation. Steep forested hills rise right behind the city."},
-  {lat:41.9028,lng:12.4964,name:"Rome, Italy",head:120,
-   h:"Black basalt cobblestones. Italian signs. Ochre and terracotta building render. Ancient ruins casually integrated into the modern streetscape."},
-  {lat:55.7558,lng:37.6173,name:"Moscow, Russia",head:330,
-   h:"Cyrillic script on all signs. Wide Soviet-era boulevards, monumental Stalinist towers. Orthodox gold onion domes on the skyline."},
-  {lat:30.0626,lng:31.2497,name:"Cairo, Egypt",head:200,
-   h:"Arabic script, right-to-left. Desert dust coats every building. Islamic arches and mashrabiya screens. Intense sunlight, palm trees."},
-  {lat:1.2904,lng:103.8520,name:"Singapore",head:60,
-   h:"Four-language signs: English, Chinese, Malay, Tamil. Immaculate streets. Tropical greenery integrated into modern high-rises."},
-  {lat:41.0082,lng:28.9784,name:"Istanbul, Turkey",head:150,
-   h:"Turkish Latin script with dotless-i, g-breve, s-cedilla. Pencil-thin Ottoman minarets. Byzantine stonework in city walls."},
-  {lat:19.4326,lng:-99.1332,name:"Mexico City, Mexico",head:0,
-   h:"Spanish signs. Colonial baroque in dark volcanic stone. Colourful stucco facades. High altitude — 2,240m — affects vegetation."},
-  {lat:37.5665,lng:126.9780,name:"Seoul, South Korea",head:80,
-   h:"Hangul script: unique syllabic blocks visually unlike any Chinese or Japanese script. Modern glass towers beside traditional tile-roofed houses."},
-  {lat:51.5074,lng:-0.1278,name:"London, UK",head:300,
-   h:"Left-hand traffic, red double-deckers, Victorian red-brick terraces. English pub signage. Grey overcast skies. Cast-iron lamp posts."},
-  {lat:41.7151,lng:44.8271,name:"Tbilisi, Georgia",head:110,
-   h:"Unique Georgian Mkhedruli script — round flowing letters unlike any other. Ornate wooden balconies. Orthodox church domes. Caucasus mountains nearby."},
-  {lat:13.7563,lng:100.5018,name:"Bangkok, Thailand",head:250,
-   h:"Thai script everywhere — curvilinear with vowel markers above and below consonants. Golden Buddhist chedi spires. Tuk-tuks. Dense tropical greenery."},
-  {lat:28.6139,lng:77.2090,name:"New Delhi, India",head:180,
-   h:"Bilingual Devanagari (Hindi) and English signs. Auto-rickshaws in yellow-green livery. Mughal sandstone and British Raj colonial buildings side by side."},
-  {lat:-34.6037,lng:-58.3816,name:"Buenos Aires, Argentina",head:90,
-   h:"Spanish signs. Wide Haussmann-style boulevards with ornate French and Italian apartment buildings. Cobblestone barrio streets. Temperate climate."},
-  {lat:52.2297,lng:21.0122,name:"Warsaw, Poland",head:40,
-   h:"Polish Latin script with distinctive diacritics: ą ę ś ź ż ó ł. Communist panel-block housing alongside reconstructed baroque buildings."},
-  {lat:59.9311,lng:30.3609,name:"St. Petersburg, Russia",head:200,
-   h:"Cyrillic. Imperial Russian grandeur: pastel baroque palaces, wide canals — the Venice of the North. Low northern light year-round."},
-  {lat:-26.2041,lng:28.0473,name:"Johannesburg, South Africa",head:310,
-   h:"English and Afrikaans (both Latin script). Modernist offices mixed with low-rise suburban bungalows. Jacaranda trees. Right-hand traffic. Highveld plateau."}
-];
+<!-- ═══ MP MENU ═══ -->
+<div id="mp-menu" class="screen">
+  <div class="rings">
+    <div class="ring"></div>
+    <div class="ring"></div>
+    <div class="ring"></div>
+  </div>
+  <div class="mpm">
+    <div class="mpm-back">
+      <button class="mpm-back-btn" id="btn-mpm-back">&#8592; Back</button>
+    </div>
+    <div class="mpm-tag">// online multiplayer</div>
+    <h2 class="mpm-title">Play <em>Together</em></h2>
 
-/* ═══════════════════════════════════════════════
-   STATE
-═══════════════════════════════════════════════ */
-var S={
-  round:0,totalRounds:5,score:0,roundScores:[],
-  curLoc:null,gLat:null,gLng:null,
-  timerInt:null,timerSec:90,timerMax:90,usedIdx:[],
-  gameMap:null,guessMarker:null,resMap:null
-};
+    <div class="mpm-name-wrap">
+      <label class="mpm-label" for="mpm-name">Your name</label>
+      <input class="mpm-input" id="mpm-name" type="text" placeholder="Enter your name..." maxlength="20" autocomplete="off" spellcheck="false">
+    </div>
 
-/* ═══════════════════════════════════════════════
-   SCREENS
-═══════════════════════════════════════════════ */
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
-  document.getElementById(id).classList.add('active');
-}
-function showSplash(){clearInterval(S.timerInt);showScreen('splash')}
+    <div class="mpm-size">
+      <button class="mpm-size-btn active" data-size="2">2 Players</button>
+      <button class="mpm-size-btn" data-size="4">4 Players</button>
+    </div>
 
-/* ═══════════════════════════════════════════════
-   LEAFLET GAME MAP
-   Uses CartoDB Dark Matter (no labels) — streets visible, NO city names
-═══════════════════════════════════════════════ */
-function initGameMap(){
-  if(S.gameMap){S.gameMap.remove();S.gameMap=null;S.guessMarker=null;}
+    <div class="mpm-actions">
+      <button class="mpm-card" id="btn-quickmatch">
+        <div class="mpm-card-icon">&#9889;</div>
+        <div class="mpm-card-title">Quick Match</div>
+        <div class="mpm-card-sub">Auto-join or create a public room instantly</div>
+      </button>
+      <button class="mpm-card" id="btn-create-private">
+        <div class="mpm-card-icon">&#128274;</div>
+        <div class="mpm-card-title">Private Room</div>
+        <div class="mpm-card-sub">Create a room and share the code with friends</div>
+      </button>
+    </div>
 
-  S.gameMap=L.map('leaflet-map',{
-    center:[20,10],zoom:2,
-    zoomControl:true,
-    attributionControl:true,
-    minZoom:1,maxZoom:18
-  });
+    <div class="mpm-join">
+      <input class="mpm-input mpm-code-input" id="mpm-code" type="text" placeholder="ROOM CODE" maxlength="6" autocomplete="off" spellcheck="false">
+      <button class="mpm-join-btn" id="btn-join-code">Join</button>
+    </div>
 
-  // CartoDB Dark Matter NO LABELS — real map, rivers, coastlines, roads — zero city labels
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{
-    attribution:'&copy; <a href="https://carto.com/">CARTO</a>',
-    subdomains:'abcd',
-    maxZoom:19
-  }).addTo(S.gameMap);
+    <div class="mpm-error" id="mpm-error"></div>
+  </div>
+</div>
 
-  S.gameMap.on('click',function(e){
-    placePin(e.latlng.lat,e.latlng.lng);
-  });
+<!-- ═══ LOBBY ═══ -->
+<div id="lobby" class="screen">
+  <div class="lby">
+    <div class="lby-hdr">
+      <div class="lby-logo">GeoSense</div>
+      <div class="lby-room-type badge" id="lby-room-type">PUBLIC · 2 PLAYERS</div>
+      <div class="lby-spacer"></div>
+      <div class="lby-code-wrap" id="lby-code-wrap" hidden>
+        <span class="lby-code-label">ROOM</span>
+        <span class="lby-code" id="lby-code">------</span>
+        <button class="lby-copy-btn" id="btn-copy-link">Copy Link</button>
+      </div>
+      <button class="btn-sec lby-leave" id="btn-lby-leave">Leave</button>
+    </div>
 
-  // Hide map tip after first interaction
-  S.gameMap.on('zoomstart movestart',function(){
-    var tip=document.getElementById('map-tip');
-    if(tip)tip.classList.add('hide');
-  });
-}
+    <div class="lby-slots" id="lby-slots"></div>
 
-function placePin(lat,lng){
-  S.gLat=lat;S.gLng=lng;
+    <div class="lby-status">
+      <div class="lby-status-msg" id="lby-status-msg">Waiting for players...</div>
+      <div class="lby-progress">
+        <div class="lby-progress-fill" id="lby-progress-fill"></div>
+      </div>
+    </div>
 
-  var icon=L.divIcon({
-    className:'',
-    html:'<div style="width:20px;height:20px;background:#ff6b35;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 3px rgba(255,107,53,.35),0 3px 14px rgba(0,0,0,.6);transform:translate(-50%,-50%)"></div>',
-    iconSize:[0,0],iconAnchor:[0,0]
-  });
+    <div class="lby-countdown" id="lby-countdown" hidden>
+      <div class="lby-countdown-num" id="lby-countdown-num">3</div>
+      <div class="lby-countdown-sub">Game starting</div>
+    </div>
+  </div>
+</div>
 
-  if(S.guessMarker){
-    S.guessMarker.setLatLng([lat,lng]);
-  } else {
-    S.guessMarker=L.marker([lat,lng],{icon:icon,draggable:true,zIndexOffset:1000}).addTo(S.gameMap);
-    S.guessMarker.on('dragend',function(e){var p=e.target.getLatLng();S.gLat=p.lat;S.gLng=p.lng;});
-  }
+<!-- ═══ MP RESULT ═══ -->
+<div id="mp-result" class="screen">
+  <div class="mpr-card">
+    <div class="mpr-top">
+      <div class="mpr-round-lbl" id="mpr-round-lbl">ROUND 1 / 5</div>
+      <div class="mpr-location" id="mpr-location">—</div>
+      <div class="mpr-timer" id="mpr-timer"></div>
+    </div>
+    <div class="mpr-map-wrap"><div id="mpr-map"></div></div>
+    <div class="mpr-leaderboard" id="mpr-leaderboard"></div>
+    <div class="mpr-foot">
+      <button class="btn-sec" id="btn-mpr-menu">Menu</button>
+      <button class="btn-nxt" id="btn-mpr-next" hidden>Next Round &#8594;</button>
+    </div>
+  </div>
+</div>
 
-  // Update floating button
-  var btn=document.getElementById('btn-guess');
-  var lbl=document.getElementById('guess-lbl');
-  var flt=document.getElementById('guess-float');
-  btn.classList.add('ready');
-  lbl.textContent=lat.toFixed(1)+'\u00b0, '+lng.toFixed(1)+'\u00b0';
-  flt.classList.add('pinned');
-}
+<!-- ═══ MP FINAL ═══ -->
+<div id="mp-final" class="screen">
+  <div class="mpf-card">
+    <div class="mpf-body">
+      <div class="mpf-tag">// game complete</div>
+      <div class="mpf-winner" id="mpf-winner"></div>
+      <div class="mpf-podium" id="mpf-podium"></div>
+      <div class="mpf-leaderboard" id="mpf-leaderboard"></div>
+    </div>
+    <div class="mpf-foot">
+      <button class="btn-sec" id="btn-mpf-menu" style="flex:.4">Menu</button>
+      <button class="btn-nxt" id="btn-mpf-again" style="flex:1">Play Again</button>
+    </div>
+  </div>
+</div>
 
-/* Result map */
-function initResultMap(gLat,gLng,tLat,tLng){
-  if(S.resMap){S.resMap.remove();S.resMap=null;}
-
-  S.resMap=L.map('res-map',{
-    zoomControl:false,attributionControl:true,
-    dragging:true,scrollWheelZoom:false,doubleClickZoom:false
-  });
-
-  // CartoDB Voyager (with labels) for result — fine to show now
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
-    attribution:'&copy; <a href="https://carto.com/">CARTO</a>',
-    subdomains:'abcd',maxZoom:19
-  }).addTo(S.resMap);
-
-  var tIcon=L.divIcon({
-    className:'',
-    html:'<div style="width:22px;height:22px;background:#00e5a0;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 3px rgba(0,229,160,.4),0 3px 14px rgba(0,0,0,.5);transform:translate(-50%,-50%)"></div>',
-    iconSize:[0,0],iconAnchor:[0,0]
-  });
-  var gIcon=L.divIcon({
-    className:'',
-    html:'<div style="width:18px;height:18px;background:#ff6b35;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 0 2px rgba(255,107,53,.35),0 2px 10px rgba(0,0,0,.5);opacity:.9;transform:translate(-50%,-50%)"></div>',
-    iconSize:[0,0],iconAnchor:[0,0]
-  });
-
-  L.marker([tLat,tLng],{icon:tIcon}).addTo(S.resMap)
-    .bindPopup('<b style="color:#00e5a0">&#9679;</b> Target').openPopup();
-  L.marker([gLat,gLng],{icon:gIcon}).addTo(S.resMap)
-    .bindPopup('<b style="color:#ff6b35">&#9679;</b> Your guess');
-
-  L.polyline([[gLat,gLng],[tLat,tLng]],{
-    color:'#00e5a0',weight:1.5,dashArray:'6 5',opacity:.65
-  }).addTo(S.resMap);
-
-  var bounds=L.latLngBounds([[gLat,gLng],[tLat,tLng]]);
-  S.resMap.fitBounds(bounds.pad(0.35));
-}
-
-/* ═══════════════════════════════════════════════
-   RESIZABLE DIVIDER
-   Desktop: drag left/right (resize sv-panel width)
-   Mobile:  drag up/down   (resize sv-panel height)
-═══════════════════════════════════════════════ */
-function initDivider(){
-  var div=document.getElementById('v-div');
-  var svp=document.getElementById('sv-panel');
-  var ws=document.getElementById('workspace');
-  var dragging=false,startPos=0,startSize=0;
-
-  function isMobile(){return window.innerWidth<=700;}
-
-  function onStart(x,y){
-    dragging=true;
-    startPos=isMobile()?y:x;
-    startSize=isMobile()?svp.offsetHeight:svp.offsetWidth;
-    div.classList.add('drag');
-    document.body.style.cursor=isMobile()?'ns-resize':'ew-resize';
-    document.body.style.userSelect='none';
-  }
-  function onMove(x,y){
-    if(!dragging)return;
-    var delta=(isMobile()?y:x)-startPos;
-    var wsSize=isMobile()?ws.offsetHeight:ws.offsetWidth;
-    var minSize=isMobile()?80:200;
-    var maxSize=isMobile()?wsSize-80:wsSize-200;
-    var newSize=Math.max(minSize,Math.min(maxSize,startSize+delta));
-    if(isMobile()){
-      svp.style.height=newSize+'px';
-      svp.style.width='';
-    } else {
-      svp.style.width=newSize+'px';
-      svp.style.height='';
-    }
-    if(S.gameMap)S.gameMap.invalidateSize();
-  }
-  function onEnd(){
-    if(!dragging)return;
-    dragging=false;div.classList.remove('drag');
-    document.body.style.cursor='';document.body.style.userSelect='';
-  }
-
-  div.addEventListener('mousedown',function(e){onStart(e.clientX,e.clientY);e.preventDefault();});
-  div.addEventListener('touchstart',function(e){onStart(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});
-  document.addEventListener('mousemove',function(e){onMove(e.clientX,e.clientY);});
-  document.addEventListener('touchmove',function(e){if(dragging){onMove(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();}},{passive:false});
-  document.addEventListener('mouseup',onEnd);
-  document.addEventListener('touchend',onEnd);
-
-  // Reset sizes on orientation change
-  window.addEventListener('resize',function(){
-    svp.style.width='';svp.style.height='';
-    if(S.gameMap)setTimeout(function(){S.gameMap.invalidateSize();},100);
-  });
-}
-
-/* ═══════════════════════════════════════════════
-   GAME FLOW
-═══════════════════════════════════════════════ */
-function startGame(){
-  S.round=0;S.score=0;S.roundScores=[];S.usedIdx=[];
-  nextRound();
-}
-
-function nextRound(){
-  S.round++;S.gLat=null;S.gLng=null;S.guessMarker=null;
-  if(S.round>S.totalRounds){showFinal();return;}
-  var avail=LOCS.map(function(_,i){return i}).filter(function(i){return S.usedIdx.indexOf(i)===-1});
-  var idx=avail[Math.floor(Math.random()*avail.length)];
-  S.usedIdx.push(idx);
-  S.curLoc=LOCS[idx];
-
-  showScreen('game');
-  document.getElementById('round-badge').textContent='R'+S.round+'/'+S.totalRounds;
-  document.getElementById('score-val').textContent=S.score.toLocaleString();
-  document.getElementById('btn-guess').className='btn-guess';
-  document.getElementById('guess-lbl').textContent='Drop a pin to guess';
-  document.getElementById('guess-float').classList.remove('pinned');
-  document.getElementById('map-tip').classList.remove('hide');
-  document.getElementById('sv-fallback').classList.remove('show');
-  document.getElementById('sv-content').innerHTML='';
-
-  setTimeout(function(){initGameMap();if(S.gameMap)S.gameMap.invalidateSize();},60);
-  loadSV();
-  startTimer();
-}
-
-/* ═══════════════════════════════════════════════
-   STREET VIEW — iframe embed
-═══════════════════════════════════════════════ */
-function loadSV(){
-  var loc=S.curLoc;
-  document.getElementById('sv-loader').classList.remove('gone');
-  document.getElementById('sv-fallback').classList.remove('show');
-  var cont=document.getElementById('sv-content');
-  cont.innerHTML='';
-
-  var ifr=document.createElement('iframe');
-  ifr.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:none';
-  ifr.setAttribute('allowfullscreen','');
-  var head=loc.head||180;
-  ifr.src='https://maps.google.com/maps?q=&layer=c&cbll='+loc.lat+','+loc.lng+'&cbp=12,'+head+',0,0,0&output=svembed&hl=en';
-
-  var loaded=false;
-  ifr.onload=function(){loaded=true;setTimeout(function(){document.getElementById('sv-loader').classList.add('gone');},600);};
-  cont.appendChild(ifr);
-
-  // Fallback if nothing loads after 8s
-  setTimeout(function(){
-    if(!loaded){document.getElementById('sv-loader').classList.add('gone');showFB(loc);}
-  },8000);
-}
-
-function showFB(loc){
-  document.getElementById('fb-rnd').textContent=S.round;
-  document.getElementById('fb-hint').textContent=loc.h;
-  document.getElementById('fb-link').href='https://maps.google.com/maps?q=&layer=c&cbll='+loc.lat+','+loc.lng+'&cbp=12,'+(loc.head||180)+',0,0,0';
-  document.getElementById('sv-fallback').classList.add('show');
-}
-
-/* ═══════════════════════════════════════════════
-   TIMER
-═══════════════════════════════════════════════ */
-function startTimer(){
-  clearInterval(S.timerInt);
-  S.timerSec=S.timerMax;tick();
-  S.timerInt=setInterval(function(){S.timerSec--;tick();if(S.timerSec<=0){clearInterval(S.timerInt);submitGuess();}},1000);
-}
-function tick(){
-  var pct=(S.timerSec/S.timerMax)*100;
-  var bar=document.getElementById('tbar');bar.style.width=pct+'%';bar.classList.toggle('warn',S.timerSec<=20);
-  var v=document.getElementById('tmr-val');v.textContent=S.timerSec;
-  v.style.color=S.timerSec<=20?'var(--r)':S.timerSec<=40?'var(--o)':'var(--t)';
-}
-
-/* ═══════════════════════════════════════════════
-   SCORING
-═══════════════════════════════════════════════ */
-function hav(la1,ln1,la2,ln2){
-  var R=6371,r=Math.PI/180;
-  var a=Math.sin((la2-la1)*r/2)*Math.sin((la2-la1)*r/2)+Math.cos(la1*r)*Math.cos(la2*r)*Math.sin((ln2-ln1)*r/2)*Math.sin((ln2-ln1)*r/2);
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-function calcScore(km){return Math.max(0,Math.round(5000*Math.exp(-km/2000)));}
-
-function submitGuess(){
-  clearInterval(S.timerInt);
-  var gl=S.gLat!=null?S.gLat:0,gn=S.gLng!=null?S.gLng:0;
-  var dist=hav(gl,gn,S.curLoc.lat,S.curLoc.lng);
-  var pts=calcScore(dist);
-  S.score+=pts;S.roundScores.push(pts);
-  showResult(gl,gn,dist,pts);
-}
-
-/* ═══════════════════════════════════════════════
-   RESULT
-═══════════════════════════════════════════════ */
-function showResult(gl,gn,dist,pts){
-  var pct=pts/5000;
-  document.getElementById('res-round-lbl').textContent='ROUND '+S.round+' / '+S.totalRounds;
-  var pEl=document.getElementById('res-pts');
-  pEl.textContent=pts.toLocaleString();
-  pEl.className='res-pts '+(pct>.85?'cg':pct>.55?'cp':pct>.25?'co':'cr');
-  document.getElementById('res-verdict').textContent=
-    pct>.85?'\ud83c\udfc6 Outstanding!':pct>.55?'\ud83c\udfaf Great guess!':pct>.25?'\ud83d\udc4d Not bad':'\ud83d\udccd Keep exploring';
-  var distStr=dist<1?'< 1':dist<10?dist.toFixed(1):Math.round(dist).toLocaleString();
-  document.getElementById('res-dist-num').textContent=distStr;
-  document.getElementById('res-loc').textContent=S.curLoc.name;
-  document.getElementById('res-pts-stat').textContent=pts.toLocaleString()+' pts';
-  document.getElementById('res-total').textContent=S.score.toLocaleString()+' pts';
-  document.getElementById('btn-nxt').textContent=S.round>=S.totalRounds?'See Final Score \u2192':'Round '+(S.round+1)+' \u2192';
-  showScreen('result');
-  setTimeout(function(){initResultMap(gl,gn,S.curLoc.lat,S.curLoc.lng);},100);
-  if(pts>4200)confetti();
-}
-
-/* ═══════════════════════════════════════════════
-   FINAL
-═══════════════════════════════════════════════ */
-function showFinal(){
-  var pct=S.score/25000;
-  document.getElementById('fin-score').textContent=S.score.toLocaleString();
-  document.getElementById('fin-grade').textContent=
-    pct>.9?'\ud83c\udfc6 Geographic genius!':pct>.7?'\ud83c\udf0d World explorer':pct>.5?'\ud83d\udccd Getting there':'\ud83e\udded Keep traveling!';
-  document.getElementById('fin-chips').innerHTML=S.roundScores.map(function(s,i){
-    var c=s>3500?'hi':s>1500?'md':'lo';
-    return '<div class="chip '+c+'">R'+(i+1)+': '+s.toLocaleString()+'</div>';
-  }).join('');
-  showScreen('final');
-  if(S.score>12000)confetti();
-}
-
-/* ═══════════════════════════════════════════════
-   CONFETTI
-═══════════════════════════════════════════════ */
-function confetti(){
-  var cols=['#00e5a0','#7c6aff','#ff6b35','#ffffff','#ffe066','#ff3d5a'];
-  for(var i=0;i<80;i++){
-    (function(d){setTimeout(function(){
-      var el=document.createElement('div');el.className='cf';
-      el.style.cssText='left:'+Math.random()*100+'vw;top:-10px;background:'+cols[Math.floor(Math.random()*cols.length)]
-        +';border-radius:'+(Math.random()>.5?'50%':'2px')+';transform:scale('+(0.4+Math.random())
-        +');animation-duration:'+(2+Math.random()*3)+'s';
-      document.body.appendChild(el);setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},5500);
-    },d);})(i*28);
-  }
-}
-
-/* ═══════════════════════════════════════════════
-   BOOT
-═══════════════════════════════════════════════ */
-window.addEventListener('load',function(){
-  initDivider();
-});
-</script>
 </body>
 </html>
