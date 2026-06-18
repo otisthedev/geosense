@@ -163,7 +163,7 @@ export function updateMpStatusBar(): void {
   bar.innerHTML = mpState.players
     .filter((p) => p.status !== 'disconnected')
     .map((p) => {
-      const guessed = mpState.guessedIds.has(p.player_id);
+      const guessed = p.status === 'guessed' || mpState.guessedIds.has(p.player_id);
       const cls = guessed ? 'guessed' : 'waiting';
       return `<div class="mp-player-pill ${cls}">
         <div class="mp-player-dot" style="background:${p.color}"></div>
@@ -180,10 +180,10 @@ function updateMpWaitPlayers(): void {
   if (!waitEl) return;
 
   const active = mpState.players.filter((p) => p.status !== 'disconnected');
-  const guessedCount = active.filter((p) => mpState.guessedIds.has(p.player_id)).length;
+  const guessedCount = active.filter((p) => p.status === 'guessed' || mpState.guessedIds.has(p.player_id)).length;
 
   waitEl.innerHTML = active.map((p) => {
-    const guessed = mpState.guessedIds.has(p.player_id);
+    const guessed = p.status === 'guessed' || mpState.guessedIds.has(p.player_id);
     return `<div class="mp-player-dot" style="background:${p.color};${guessed ? `box-shadow:0 0 6px ${p.color}` : 'opacity:.3'}"></div>`;
   }).join('') + `<span style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td);margin-left:.4rem">${guessedCount}/${active.length} answered</span>`;
 }

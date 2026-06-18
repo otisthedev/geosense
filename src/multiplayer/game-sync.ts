@@ -6,6 +6,7 @@ import {
 import {
   submitGuessToDb, getRoundGuesses, getRoomPlayers,
   setRoomStatus, updatePlayerScore, getPlayerId, setRoundTarget,
+  markPlayerGuessed, resetPlayersToPlaying,
 } from './rooms';
 import { getState } from '../state';
 import { haversineKm } from '../services/scoring';
@@ -85,6 +86,9 @@ export async function handleMpGuessSubmit(
   const timeMs = Date.now() - mpState.roundStartTime;
 
   await submitGuessToDb(mpState.room.id, round, lat, lng, dist, pts, timeMs);
+  // Update DB status to 'guessed' — Postgres Changes fires on all clients, giving the
+  // host a reliable DB-backed trigger for _checkAllGuessed, not just broadcast delivery.
+  await markPlayerGuessed(mpState.room.id, getPlayerId());
   broadcast({ type: 'player:guessed', player_id: getPlayerId(), round });
 }
 
@@ -114,10 +118,12 @@ export function cancelAllTimers(): void {
 // ─── Host: resolve round ──────────────────────────────────────────────────────
 
 function _checkAllGuessed(round: number): void {
-  if (!isHost() || round === 0) return;
-  const { players, guessedIds } = getMpState();
+  if (!isHost() || round === 0 || roundResolved) return;
+  const { players } = getMpState();
   const active = players.filter((p) => p.status !== 'disconnected');
-  if (active.length > 0 && active.every((p) => guessedIds.has(p.player_id))) {
+  // Use DB-authoritative status: a player's row is set to 'guessed' after they submit.
+  // This fires via Postgres Changes even if the broadcast was dropped.
+  if (active.length > 0 && active.every((p) => p.status === 'guessed')) {
     if (resolveTimer) { clearTimeout(resolveTimer); resolveTimer = null; }
     _resolveRound(round);
   }
@@ -194,6 +200,7 @@ function _scheduleNextRound(round: number): void {
       console.error(`[MP] loc_seq[${nextRound - 1}] undefined — cannot start round ${nextRound}`);
       return;
     }
+    await resetPlayersToPlaying(mpState.room.id);
     await setRoundTarget(mpState.room.id, rawLoc.lat, rawLoc.lng);
     broadcast({
       type: 'round:start',
@@ -220,6 +227,7 @@ export async function hostStartGame(): Promise<void> {
   }
 
   await setRoomStatus(mpState.room.id, 'playing', 1);
+  await resetPlayersToPlaying(mpState.room.id);
   await setRoundTarget(mpState.room.id, rawLoc.lat, rawLoc.lng);
 
   broadcast({

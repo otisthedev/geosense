@@ -220,6 +220,25 @@ export async function submitGuessToDb(
   });
 }
 
+// Mark a player as having submitted their guess for this round.
+// Triggers Postgres Changes → handlePlayersUpdate → _checkAllGuessed on the host.
+export async function markPlayerGuessed(roomId: string, playerId: string): Promise<void> {
+  await supabase
+    .from('room_players')
+    .update({ status: 'guessed' })
+    .eq('room_id', roomId)
+    .eq('player_id', playerId);
+}
+
+// Reset all non-disconnected players to 'playing' at the start of each round.
+export async function resetPlayersToPlaying(roomId: string): Promise<void> {
+  await supabase
+    .from('room_players')
+    .update({ status: 'playing' })
+    .eq('room_id', roomId)
+    .neq('status', 'disconnected');
+}
+
 export async function getRoundGuesses(
   roomId: string,
   round: number,
