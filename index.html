@@ -2,8 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GeoSense</title>
+<meta name="description" content="A daily street-level geography puzzle game">
+<meta name="theme-color" content="#07090e">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
@@ -17,8 +22,9 @@
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--t);font-family:'Syne',sans-serif;touch-action:none}
 
 /* ══ SCREENS ══ */
-.screen{display:none;position:fixed;inset:0;z-index:10;overflow:hidden}
+.screen{display:none;position:fixed;inset:0;z-index:10;overflow:hidden;opacity:0;transition:opacity .18s ease}
 .screen.active{display:flex;flex-direction:column}
+.screen.visible{opacity:1}
 
 /* ══════════════════════════════════════
    SPLASH
@@ -38,9 +44,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 .ring:nth-child(3){width:min(1100px,190vw);height:min(1100px,190vw);border-color:rgba(255,107,53,.03);animation:rot 80s linear infinite}
 @keyframes rot{to{transform:translate(-50%,-50%) rotate(360deg)}}
 
-.sc{position:relative;z-index:2;text-align:center;padding:2.5rem 2rem;max-width:520px;width:100%}
+.sc{position:relative;z-index:2;text-align:center;padding:2.5rem 1.5rem;max-width:min(90vw,900px);width:100%}
 .sc-tag{font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.35em;color:var(--g);margin-bottom:1.5rem;opacity:0;animation:up .5s .1s ease forwards;text-transform:uppercase}
-.sc-title{font-size:clamp(4rem,13vw,7.5rem);font-weight:800;line-height:.88;letter-spacing:-.04em;margin-bottom:1.25rem;opacity:0;animation:up .5s .25s ease forwards}
+.sc-title{font-size:clamp(2.6rem,9vw,7.5rem);font-weight:800;line-height:.88;letter-spacing:-.04em;margin-bottom:1.25rem;opacity:0;animation:up .5s .25s ease forwards}
 .sc-title em{font-style:normal;background:linear-gradient(128deg,var(--g) 0%,var(--p) 55%,var(--o) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .sc-sub{font-size:.95rem;color:var(--td);line-height:1.8;max-width:360px;margin:0 auto 2.75rem;opacity:0;animation:up .5s .4s ease forwards}
 .sc-btn{background:var(--g);color:#000;border:none;padding:1.05rem 3.5rem;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;letter-spacing:.055em;text-transform:uppercase;cursor:pointer;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);transition:.2s;opacity:0;animation:up .5s .55s ease forwards}
@@ -121,10 +127,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
   transition:background .15s;position:relative;z-index:100;
   user-select:none;touch-action:none}
 .divider:hover,.divider.drag{background:var(--p)}
+.divider::before{
+  content:'';position:absolute;top:0;bottom:0;left:-20px;right:-20px}
 .divider::after{
   content:'';display:block;width:2px;height:28px;
   background:rgba(255,255,255,.18);border-radius:2px;transition:background .15s}
 .divider:hover::after,.divider.drag::after{background:rgba(255,255,255,.55)}
+@media(max-width:700px){
+  .divider::before{top:-20px;bottom:-20px;left:0;right:0}
+}
 
 /* ── Map panel (RIGHT) ── */
 .map-panel{
@@ -249,6 +260,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 .fin-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--g),var(--p),var(--o))}
 .fin-body{padding:3rem 2rem 2rem;text-align:center}
 .fin-tag{font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:.28em;color:var(--g);margin-bottom:.85rem;text-transform:uppercase}
+.fin-pb{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);margin-bottom:.5rem;min-height:1.2em}
 .fin-score{font-size:clamp(4rem,16vw,7rem);font-weight:800;line-height:1;letter-spacing:-.04em;
   background:linear-gradient(128deg,var(--g),var(--p));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .fin-of{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);margin-bottom:.75rem}
@@ -268,7 +280,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 <body>
 
 <!-- ═══ SPLASH ═══ -->
-<div id="splash" class="screen active">
+<div id="splash" class="screen active visible">
   <div class="rings"><div class="ring"></div><div class="ring"></div><div class="ring"></div></div>
   <div class="sc">
     <div class="sc-tag">// street level geography game</div>
@@ -279,6 +291,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
       <div><span>ROUNDS</span><b>5</b></div>
       <div><span>MAX SCORE</span><b>25,000</b></div>
       <div><span>TIME</span><b>90s</b></div>
+      <div id="pb-stat" style="display:none"><span>YOUR BEST</span><b id="pb-val">—</b></div>
     </div>
   </div>
 </div>
@@ -365,6 +378,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
       <div class="fin-tag">// game complete</div>
       <div class="fin-score" id="fin-score">0</div>
       <div class="fin-of">out of 25,000 points</div>
+      <div class="fin-pb" id="fin-pb"></div>
       <div class="fin-grade" id="fin-grade"></div>
       <div class="chips" id="fin-chips"></div>
     </div>
@@ -380,45 +394,46 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
    LOCATIONS
 ═══════════════════════════════════════════════ */
 var LOCS=[
-  {lat:48.8584,lng:2.2945,name:"Paris, France",head:180,
+  // Coordinates are on confirmed Street View roads / tourist areas
+  {lat:48.8566,lng:2.3522,name:"Paris, France",head:180,
    h:"19th-century European: limestone facades, wrought-iron balconies, zinc mansard rooftops. Latin script with Romance-language accent marks."},
-  {lat:35.6762,lng:139.6503,name:"Tokyo, Japan",head:90,
+  {lat:35.6595,lng:139.7004,name:"Tokyo, Japan",head:90,
    h:"Signs mix logographic, cursive syllabic, and angular syllabic scripts. Extremely dense streets. Vending machines on almost every corner."},
   {lat:-33.8688,lng:151.2093,name:"Sydney, Australia",head:45,
    h:"English signage, left-hand traffic, British-derived architecture. Subtropical vegetation — eucalyptus trees. Southern hemisphere seasons are reversed."},
-  {lat:40.7580,lng:-73.9855,name:"New York, USA",head:270,
+  {lat:40.7549,lng:-73.9840,name:"New York, USA",head:270,
    h:"American grid streets. Bright fire hydrants, yellow cabs, wooden utility poles, speed signs in mph. English-only signs."},
-  {lat:-22.9068,lng:-43.1729,name:"Rio de Janeiro, Brazil",head:0,
+  {lat:-22.9711,lng:-43.1823,name:"Rio de Janeiro, Brazil",head:90,
    h:"Portuguese signs with tildes and cedillas. Tropical vegetation. Steep forested hills rise right behind the city."},
-  {lat:41.9028,lng:12.4964,name:"Rome, Italy",head:120,
+  {lat:41.8902,lng:12.4922,name:"Rome, Italy",head:120,
    h:"Black basalt cobblestones. Italian signs. Ochre and terracotta building render. Ancient ruins casually integrated into the modern streetscape."},
-  {lat:55.7558,lng:37.6173,name:"Moscow, Russia",head:330,
+  {lat:55.7539,lng:37.6208,name:"Moscow, Russia",head:90,
    h:"Cyrillic script on all signs. Wide Soviet-era boulevards, monumental Stalinist towers. Orthodox gold onion domes on the skyline."},
-  {lat:30.0626,lng:31.2497,name:"Cairo, Egypt",head:200,
+  {lat:30.0459,lng:31.2243,name:"Cairo, Egypt",head:45,
    h:"Arabic script, right-to-left. Desert dust coats every building. Islamic arches and mashrabiya screens. Intense sunlight, palm trees."},
-  {lat:1.2904,lng:103.8520,name:"Singapore",head:60,
+  {lat:1.2831,lng:103.8602,name:"Singapore",head:60,
    h:"Four-language signs: English, Chinese, Malay, Tamil. Immaculate streets. Tropical greenery integrated into modern high-rises."},
-  {lat:41.0082,lng:28.9784,name:"Istanbul, Turkey",head:150,
+  {lat:41.0138,lng:28.9550,name:"Istanbul, Turkey",head:150,
    h:"Turkish Latin script with dotless-i, g-breve, s-cedilla. Pencil-thin Ottoman minarets. Byzantine stonework in city walls."},
-  {lat:19.4326,lng:-99.1332,name:"Mexico City, Mexico",head:0,
+  {lat:19.4270,lng:-99.1676,name:"Mexico City, Mexico",head:90,
    h:"Spanish signs. Colonial baroque in dark volcanic stone. Colourful stucco facades. High altitude — 2,240m — affects vegetation."},
-  {lat:37.5665,lng:126.9780,name:"Seoul, South Korea",head:80,
+  {lat:37.5700,lng:126.9784,name:"Seoul, South Korea",head:80,
    h:"Hangul script: unique syllabic blocks visually unlike any Chinese or Japanese script. Modern glass towers beside traditional tile-roofed houses."},
-  {lat:51.5074,lng:-0.1278,name:"London, UK",head:300,
+  {lat:51.5007,lng:-0.1246,name:"London, UK",head:300,
    h:"Left-hand traffic, red double-deckers, Victorian red-brick terraces. English pub signage. Grey overcast skies. Cast-iron lamp posts."},
-  {lat:41.7151,lng:44.8271,name:"Tbilisi, Georgia",head:110,
+  {lat:41.6938,lng:44.8015,name:"Tbilisi, Georgia",head:90,
    h:"Unique Georgian Mkhedruli script — round flowing letters unlike any other. Ornate wooden balconies. Orthodox church domes. Caucasus mountains nearby."},
-  {lat:13.7563,lng:100.5018,name:"Bangkok, Thailand",head:250,
+  {lat:13.7469,lng:100.5347,name:"Bangkok, Thailand",head:250,
    h:"Thai script everywhere — curvilinear with vowel markers above and below consonants. Golden Buddhist chedi spires. Tuk-tuks. Dense tropical greenery."},
-  {lat:28.6139,lng:77.2090,name:"New Delhi, India",head:180,
+  {lat:28.6129,lng:77.2295,name:"New Delhi, India",head:270,
    h:"Bilingual Devanagari (Hindi) and English signs. Auto-rickshaws in yellow-green livery. Mughal sandstone and British Raj colonial buildings side by side."},
   {lat:-34.6037,lng:-58.3816,name:"Buenos Aires, Argentina",head:90,
    h:"Spanish signs. Wide Haussmann-style boulevards with ornate French and Italian apartment buildings. Cobblestone barrio streets. Temperate climate."},
-  {lat:52.2297,lng:21.0122,name:"Warsaw, Poland",head:40,
+  {lat:52.2319,lng:21.0067,name:"Warsaw, Poland",head:90,
    h:"Polish Latin script with distinctive diacritics: ą ę ś ź ż ó ł. Communist panel-block housing alongside reconstructed baroque buildings."},
-  {lat:59.9311,lng:30.3609,name:"St. Petersburg, Russia",head:200,
+  {lat:59.9356,lng:30.3251,name:"St. Petersburg, Russia",head:90,
    h:"Cyrillic. Imperial Russian grandeur: pastel baroque palaces, wide canals — the Venice of the North. Low northern light year-round."},
-  {lat:-26.2041,lng:28.0473,name:"Johannesburg, South Africa",head:310,
+  {lat:-26.2044,lng:28.0416,name:"Johannesburg, South Africa",head:180,
    h:"English and Afrikaans (both Latin script). Modernist offices mixed with low-rise suburban bungalows. Jacaranda trees. Right-hand traffic. Highveld plateau."}
 ];
 
@@ -436,10 +451,27 @@ var S={
    SCREENS
 ═══════════════════════════════════════════════ */
 function showScreen(id){
-  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
-  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.screen').forEach(function(s){
+    s.classList.remove('active','visible');
+  });
+  var next=document.getElementById(id);
+  next.classList.add('active');
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){next.classList.add('visible');});
+  });
 }
-function showSplash(){clearInterval(S.timerInt);showScreen('splash')}
+function showSplash(){
+  clearInterval(S.timerInt);
+  var pb=getPB();
+  var pbStat=document.getElementById('pb-stat');
+  if(pb>0){
+    document.getElementById('pb-val').textContent=pb.toLocaleString();
+    pbStat.style.display='';
+  } else {
+    pbStat.style.display='none';
+  }
+  showScreen('splash');
+}
 
 /* ═══════════════════════════════════════════════
    LEAFLET GAME MAP
@@ -455,8 +487,7 @@ function initGameMap(){
     minZoom:1,maxZoom:18
   });
 
-  // CartoDB Dark Matter NO LABELS — real map, rivers, coastlines, roads — zero city labels
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
     attribution:'&copy; <a href="https://carto.com/">CARTO</a>',
     subdomains:'abcd',
     maxZoom:19
@@ -499,7 +530,7 @@ function placePin(lat,lng){
 }
 
 /* Result map */
-function initResultMap(gLat,gLng,tLat,tLng){
+function initResultMap(gLat,gLng,tLat,tLng,noGuess){
   if(S.resMap){S.resMap.remove();S.resMap=null;}
 
   S.resMap=L.map('res-map',{
@@ -507,7 +538,6 @@ function initResultMap(gLat,gLng,tLat,tLng){
     dragging:true,scrollWheelZoom:false,doubleClickZoom:false
   });
 
-  // CartoDB Voyager (with labels) for result — fine to show now
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
     attribution:'&copy; <a href="https://carto.com/">CARTO</a>',
     subdomains:'abcd',maxZoom:19
@@ -518,23 +548,40 @@ function initResultMap(gLat,gLng,tLat,tLng){
     html:'<div style="width:22px;height:22px;background:#00e5a0;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 3px rgba(0,229,160,.4),0 3px 14px rgba(0,0,0,.5);transform:translate(-50%,-50%)"></div>',
     iconSize:[0,0],iconAnchor:[0,0]
   });
-  var gIcon=L.divIcon({
-    className:'',
-    html:'<div style="width:18px;height:18px;background:#ff6b35;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 0 2px rgba(255,107,53,.35),0 2px 10px rgba(0,0,0,.5);opacity:.9;transform:translate(-50%,-50%)"></div>',
-    iconSize:[0,0],iconAnchor:[0,0]
-  });
 
   L.marker([tLat,tLng],{icon:tIcon}).addTo(S.resMap)
-    .bindPopup('<b style="color:#00e5a0">&#9679;</b> Target').openPopup();
-  L.marker([gLat,gLng],{icon:gIcon}).addTo(S.resMap)
-    .bindPopup('<b style="color:#ff6b35">&#9679;</b> Your guess');
+    .bindPopup(noGuess?'<b style="color:#00e5a0">&#9679;</b> '+S.curLoc.name+' — no guess placed':'<b style="color:#00e5a0">&#9679;</b> Target');
 
-  L.polyline([[gLat,gLng],[tLat,tLng]],{
-    color:'#00e5a0',weight:1.5,dashArray:'6 5',opacity:.65
-  }).addTo(S.resMap);
+  if(!noGuess){
+    var gIcon=L.divIcon({
+      className:'',
+      html:'<div style="width:18px;height:18px;background:#ff6b35;border:2.5px solid #fff;border-radius:50%;box-shadow:0 0 0 2px rgba(255,107,53,.35),0 2px 10px rgba(0,0,0,.5);opacity:.9;transform:translate(-50%,-50%)"></div>',
+      iconSize:[0,0],iconAnchor:[0,0]
+    });
+    L.marker([gLat,gLng],{icon:gIcon}).addTo(S.resMap)
+      .bindPopup('<b style="color:#ff6b35">&#9679;</b> Your guess');
 
-  var bounds=L.latLngBounds([[gLat,gLng],[tLat,tLng]]);
-  S.resMap.fitBounds(bounds.pad(0.35));
+    var line=L.polyline([[gLat,gLng],[tLat,tLng]],{
+      color:'#00e5a0',weight:1.5,opacity:.75
+    }).addTo(S.resMap);
+
+    var bounds=L.latLngBounds([[gLat,gLng],[tLat,tLng]]);
+    S.resMap.fitBounds(bounds.pad(0.35));
+
+    S.resMap.once('moveend',function(){
+      var pathEl=line.getElement();
+      if(!pathEl)return;
+      var len=pathEl.getTotalLength();
+      pathEl.style.strokeDasharray=len+' '+len;
+      pathEl.style.strokeDashoffset=len;
+      pathEl.style.transition='none';
+      pathEl.getBoundingClientRect();
+      pathEl.style.transition='stroke-dashoffset 800ms ease-in-out';
+      pathEl.style.strokeDashoffset='0';
+    });
+  } else {
+    S.resMap.setView([tLat,tLng],4);
+  }
 }
 
 /* ═══════════════════════════════════════════════
@@ -598,7 +645,9 @@ function initDivider(){
    GAME FLOW
 ═══════════════════════════════════════════════ */
 function startGame(){
-  S.round=0;S.score=0;S.roundScores=[];S.usedIdx=[];
+  S.round=0;S.score=0;S.roundScores=[];
+  // Restore cross-session used pool so no city repeats until all are seen
+  S.usedIdx=JSON.parse(localStorage.getItem('gs_used')||'[]');
   nextRound();
 }
 
@@ -606,8 +655,15 @@ function nextRound(){
   S.round++;S.gLat=null;S.gLng=null;S.guessMarker=null;
   if(S.round>S.totalRounds){showFinal();return;}
   var avail=LOCS.map(function(_,i){return i}).filter(function(i){return S.usedIdx.indexOf(i)===-1});
+  if(avail.length===0){
+    // All locations seen — reset the pool for the next cycle
+    S.usedIdx=[];
+    localStorage.removeItem('gs_used');
+    avail=LOCS.map(function(_,i){return i});
+  }
   var idx=avail[Math.floor(Math.random()*avail.length)];
   S.usedIdx.push(idx);
+  localStorage.setItem('gs_used',JSON.stringify(S.usedIdx));
   S.curLoc=LOCS[idx];
 
   showScreen('game');
@@ -639,16 +695,17 @@ function loadSV(){
   ifr.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:none';
   ifr.setAttribute('allowfullscreen','');
   var head=loc.head||180;
-  ifr.src='https://maps.google.com/maps?q=&layer=c&cbll='+loc.lat+','+loc.lng+'&cbp=12,'+head+',0,0,0&output=svembed&hl=en';
+  ifr.src='https://maps.google.com/maps?layer=c&cbll='+loc.lat+','+loc.lng+'&cbp=12,'+head+',0,0,0&output=svembed&hl=en';
 
   var loaded=false;
-  ifr.onload=function(){loaded=true;setTimeout(function(){document.getElementById('sv-loader').classList.add('gone');},600);};
+  ifr.onload=function(){loaded=true;setTimeout(function(){document.getElementById('sv-loader').classList.add('gone');},400);};
+  ifr.onerror=function(){document.getElementById('sv-loader').classList.add('gone');showFB(loc);};
   cont.appendChild(ifr);
 
-  // Fallback if nothing loads after 8s
+  // Fallback if Street View doesn't confirm load within 5s
   setTimeout(function(){
     if(!loaded){document.getElementById('sv-loader').classList.add('gone');showFB(loc);}
-  },8000);
+  },5000);
 }
 
 function showFB(loc){
@@ -685,41 +742,86 @@ function calcScore(km){return Math.max(0,Math.round(5000*Math.exp(-km/2000)));}
 
 function submitGuess(){
   clearInterval(S.timerInt);
-  var gl=S.gLat!=null?S.gLat:0,gn=S.gLng!=null?S.gLng:0;
-  var dist=hav(gl,gn,S.curLoc.lat,S.curLoc.lng);
-  var pts=calcScore(dist);
+  var noGuess=S.gLat==null;
+  var gl=noGuess?S.curLoc.lat:S.gLat;
+  var gn=noGuess?S.curLoc.lng:S.gLng;
+  var dist=noGuess?0:hav(gl,gn,S.curLoc.lat,S.curLoc.lng);
+  var pts=noGuess?0:calcScore(dist);
   S.score+=pts;S.roundScores.push(pts);
-  showResult(gl,gn,dist,pts);
+  showResult(gl,gn,dist,pts,noGuess);
 }
 
 /* ═══════════════════════════════════════════════
    RESULT
 ═══════════════════════════════════════════════ */
-function showResult(gl,gn,dist,pts){
+function countUp(el,target,colorClass,duration){
+  var start=performance.now();
+  var verdict=el.nextElementSibling;
+  el.className='res-pts';
+  if(verdict)verdict.style.opacity='0';
+  function step(now){
+    var t=Math.min((now-start)/duration,1);
+    var ease=1-Math.pow(1-t,3);
+    el.textContent=Math.round(ease*target).toLocaleString();
+    if(t<1){
+      requestAnimationFrame(step);
+    } else {
+      el.textContent=target.toLocaleString();
+      el.className='res-pts '+colorClass;
+      if(verdict){verdict.style.transition='opacity .35s';verdict.style.opacity='1';}
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function showResult(gl,gn,dist,pts,noGuess){
   var pct=pts/5000;
+  var colorClass=noGuess?'cr':pct>.85?'cg':pct>.55?'cp':pct>.25?'co':'cr';
   document.getElementById('res-round-lbl').textContent='ROUND '+S.round+' / '+S.totalRounds;
-  var pEl=document.getElementById('res-pts');
-  pEl.textContent=pts.toLocaleString();
-  pEl.className='res-pts '+(pct>.85?'cg':pct>.55?'cp':pct>.25?'co':'cr');
-  document.getElementById('res-verdict').textContent=
+  document.getElementById('res-verdict').textContent=noGuess?'\u23f1 Time\'s up \u2014 no pin placed':
     pct>.85?'\ud83c\udfc6 Outstanding!':pct>.55?'\ud83c\udfaf Great guess!':pct>.25?'\ud83d\udc4d Not bad':'\ud83d\udccd Keep exploring';
-  var distStr=dist<1?'< 1':dist<10?dist.toFixed(1):Math.round(dist).toLocaleString();
+  var distStr=noGuess?'\u2014':dist<1?'< 1':dist<10?dist.toFixed(1):Math.round(dist).toLocaleString();
   document.getElementById('res-dist-num').textContent=distStr;
   document.getElementById('res-loc').textContent=S.curLoc.name;
   document.getElementById('res-pts-stat').textContent=pts.toLocaleString()+' pts';
   document.getElementById('res-total').textContent=S.score.toLocaleString()+' pts';
   document.getElementById('btn-nxt').textContent=S.round>=S.totalRounds?'See Final Score \u2192':'Round '+(S.round+1)+' \u2192';
   showScreen('result');
-  setTimeout(function(){initResultMap(gl,gn,S.curLoc.lat,S.curLoc.lng);},100);
+  countUp(document.getElementById('res-pts'),pts,colorClass,1200);
+  setTimeout(function(){initResultMap(gl,gn,S.curLoc.lat,S.curLoc.lng,noGuess);},100);
   if(pts>4200)confetti();
 }
 
 /* ═══════════════════════════════════════════════
    FINAL
 ═══════════════════════════════════════════════ */
+/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+   PERSONAL BEST
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+function getPB(){return parseInt(localStorage.getItem('gs_pb')||'0',10);}
+function setPB(n){localStorage.setItem('gs_pb',n);}
+
 function showFinal(){
   var pct=S.score/25000;
+  var pb=getPB();
+  var isNewPB=S.score>pb;
+  if(isNewPB)setPB(S.score);
+
   document.getElementById('fin-score').textContent=S.score.toLocaleString();
+
+  var pbEl=document.getElementById('fin-pb');
+  if(isNewPB&&pb>0){
+    pbEl.textContent='\u2b06 New personal best! (was '+pb.toLocaleString()+')';
+    pbEl.style.color='var(--g)';
+  } else if(isNewPB){
+    pbEl.textContent='First game complete \u2014 personal best set!';
+    pbEl.style.color='var(--g)';
+  } else {
+    var diff=pb-S.score;
+    pbEl.textContent='Best: '+pb.toLocaleString()+' \u2014 '+diff.toLocaleString()+' pts away';
+    pbEl.style.color='';
+  }
+
   document.getElementById('fin-grade').textContent=
     pct>.9?'\ud83c\udfc6 Geographic genius!':pct>.7?'\ud83c\udf0d World explorer':pct>.5?'\ud83d\udccd Getting there':'\ud83e\udded Keep traveling!';
   document.getElementById('fin-chips').innerHTML=S.roundScores.map(function(s,i){
@@ -751,6 +853,11 @@ function confetti(){
 ═══════════════════════════════════════════════ */
 window.addEventListener('load',function(){
   initDivider();
+  var pb=getPB();
+  if(pb>0){
+    document.getElementById('pb-val').textContent=pb.toLocaleString();
+    document.getElementById('pb-stat').style.display='';
+  }
 });
 </script>
 </body>
