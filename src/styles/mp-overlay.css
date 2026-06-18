@@ -1,0 +1,186 @@
+/* ═══ MP OVERLAYS (injected into #game screen) ═══════════════════════════════ */
+
+/* Player status bar — between header and workspace */
+.mp-bar {
+  background: var(--s1);
+  border-bottom: 1px solid var(--brd);
+  padding: .45rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.mp-bar[hidden] { display: none; }
+
+.mp-bar-label {
+  font-family: 'DM Mono', monospace;
+  font-size: .55rem;
+  letter-spacing: .12em;
+  color: var(--td);
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mp-bar-players {
+  display: flex;
+  gap: .55rem;
+  align-items: center;
+}
+
+.mp-player-pill {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  font-family: 'DM Mono', monospace;
+  font-size: .6rem;
+  color: var(--td);
+  white-space: nowrap;
+  transition: color .2s;
+}
+
+.mp-player-pill.guessed { color: var(--t); }
+
+.mp-player-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: box-shadow .3s;
+}
+
+.mp-player-pill.guessed .mp-player-dot {
+  box-shadow: 0 0 5px currentColor;
+}
+
+.mp-player-pill.waiting .mp-player-dot {
+  animation: mpPulse 1.6s ease infinite;
+  opacity: .5;
+}
+
+@keyframes mpPulse {
+  0%, 100% { opacity: .3; transform: scale(.85); }
+  50%       { opacity: .8; transform: scale(1); }
+}
+
+/* Waiting overlay — covers workspace after submitting guess */
+.mp-wait {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 9, 14, .88);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  z-index: 50;
+  animation: fadeIn .25s ease;
+}
+
+.mp-wait[hidden] { display: none; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.mp-wait-score {
+  font-size: clamp(2.8rem, 10vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1;
+  color: var(--g);
+}
+
+.mp-wait-score.cr { color: var(--r); }
+.mp-wait-score.co { color: var(--o); }
+.mp-wait-score.cp { color: var(--p); }
+
+.mp-wait-label {
+  font-family: 'DM Mono', monospace;
+  font-size: .65rem;
+  letter-spacing: .12em;
+  color: var(--td);
+  text-transform: uppercase;
+}
+
+.mp-wait-dist {
+  font-family: 'DM Mono', monospace;
+  font-size: .75rem;
+  color: var(--t);
+}
+
+.mp-wait-sep {
+  width: 40px;
+  height: 1px;
+  background: var(--brd);
+}
+
+.mp-wait-players {
+  display: flex;
+  gap: .6rem;
+  align-items: center;
+}
+
+.mp-wait-msg {
+  font-family: 'DM Mono', monospace;
+  font-size: .65rem;
+  color: var(--td);
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.mp-wait-dots {
+  display: flex;
+  gap: 3px;
+}
+
+.mp-wait-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--td);
+  display: inline-block;
+  animation: dotBounce .9s ease infinite;
+}
+
+.mp-wait-dots span:nth-child(2) { animation-delay: .15s; }
+.mp-wait-dots span:nth-child(3) { animation-delay: .3s; }
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: .4; }
+  40%           { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Multiplayer button on splash screen */
+.sc-mp-btn {
+  background: transparent;
+  color: var(--p);
+  border: 1px solid var(--p);
+  padding: .7rem 2.5rem;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: .82rem;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+  cursor: pointer;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  transition: .2s;
+  opacity: 0;
+  animation: up .5s .65s ease forwards;
+}
+
+.sc-mp-btn:hover { background: rgba(124,106,255,.12); transform: translateY(-2px); }
+.sc-mp-btn[hidden] { display: none !important; }
+
+/* Splash button row adjustment */
+.sc-btn-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .6rem;
+}

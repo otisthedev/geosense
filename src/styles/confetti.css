@@ -1,0 +1,13 @@
+.cf {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  width: 7px;
+  height: 7px;
+  animation: cff linear forwards;
+}
+
+@keyframes cff {
+  0%   { transform: translateY(-10px) rotate(0);      opacity: 1; }
+  100% { transform: translateY(110vh) rotate(540deg); opacity: 0; }
+}
