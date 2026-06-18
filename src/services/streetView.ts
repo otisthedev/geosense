@@ -1,6 +1,6 @@
 import type { Location } from '../data/locations';
 
-const SV_TIMEOUT_MS = 5000;
+const SV_TIMEOUT_MS = 10_000;
 
 export function loadStreetView(loc: Location, round: number): void {
   const loader = document.getElementById('sv-loader')!;
