@@ -227,7 +227,6 @@ export async function hostStartGame(): Promise<void> {
   }
 
   await setRoomStatus(mpState.room.id, 'playing', 1);
-  await resetPlayersToPlaying(mpState.room.id);
   await setRoundTarget(mpState.room.id, rawLoc.lat, rawLoc.lng);
 
   broadcast({

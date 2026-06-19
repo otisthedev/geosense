@@ -8,6 +8,9 @@ import type { Room, RoomPlayer } from '../multiplayer/types';
 
 let countdownTimer: ReturnType<typeof setInterval> | null = null;
 let countdownVal = 3;
+// Prevents the countdown from restarting after hostStartGame() fires and
+// causes Postgres Changes on room_players (which re-triggers updateLobbyPlayers).
+let gameStarted = false;
 
 export function initLobby(): void {
   document.getElementById('btn-lby-leave')!.addEventListener('click', onLeave);
@@ -28,6 +31,7 @@ export function showLobby(room: Room, players: RoomPlayer[]): void {
     codeWrap.hidden = true;
   }
 
+  gameStarted = false;
   renderSlots(players, room.max_players);
   updateStatus(players, room.max_players);
 
@@ -49,7 +53,7 @@ export function updateLobbyPlayers(players: RoomPlayer[]): void {
   updateStatus(players, mpState.room.max_players);
 
   const active = players.filter((p) => p.status !== 'disconnected');
-  if (active.length >= mpState.room.max_players && !countdownTimer) {
+  if (active.length >= mpState.room.max_players && !countdownTimer && !gameStarted) {
     startCountdown();
   } else if (active.length < mpState.room.max_players && countdownTimer) {
     stopCountdown();
@@ -143,6 +147,7 @@ function startCountdown(): void {
 
     if (countdownVal <= 0) {
       stopCountdown();
+      gameStarted = true;
       hostStartGame();
     }
   }, 1000);
