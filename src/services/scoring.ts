@@ -13,8 +13,18 @@ export function haversineKm(
   return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Solo: pure distance score, max 5000
 export function calcScore(km: number): number {
   return Math.max(0, Math.round(5000 * Math.exp(-km / 2000)));
+}
+
+// Multiplayer: distance is primary (max 4000, 80%) + time bonus (max 1000, 20%)
+// Distance still dominates: a 0 km guess at time limit (4000) beats any guess ≥ 1600 km instantly
+export function calcMpScore(km: number, elapsedMs: number, durationMs: number): number {
+  const distScore = Math.max(0, Math.round(4000 * Math.exp(-km / 2000)));
+  const remaining = Math.max(0, durationMs - elapsedMs);
+  const timeBonus = Math.round(1000 * (remaining / durationMs));
+  return distScore + timeBonus;
 }
 
 export function scoreColorClass(pts: number, noGuess: boolean): string {

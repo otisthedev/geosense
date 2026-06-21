@@ -194,7 +194,8 @@ export async function setRoomStatus(
 ): Promise<void> {
   const update: Record<string, unknown> = { status };
   if (round !== undefined) update.round = round;
-  await supabase.from('rooms').update(update).eq('id', roomId);
+  const { error } = await supabase.from('rooms').update(update).eq('id', roomId);
+  if (error) console.error(`setRoomStatus: ${error.message}`);
 }
 
 // ─── Guess operations ─────────────────────────────────────────────────────────
@@ -208,7 +209,7 @@ export async function submitGuessToDb(
   score: number,
   timeMs: number,
 ): Promise<void> {
-  await supabase.from('round_guesses').upsert({
+  const { error } = await supabase.from('round_guesses').upsert({
     room_id: roomId,
     player_id: getPlayerId(),
     round,
@@ -218,16 +219,18 @@ export async function submitGuessToDb(
     score,
     time_ms: timeMs,
   });
+  if (error) throw new Error(`submitGuessToDb: ${error.message}`);
 }
 
 // Mark a player as having submitted their guess for this round.
 // Triggers Postgres Changes → handlePlayersUpdate → _checkAllGuessed on the host.
 export async function markPlayerGuessed(roomId: string, playerId: string): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from('room_players')
     .update({ status: 'guessed' })
     .eq('room_id', roomId)
     .eq('player_id', playerId);
+  if (error) throw new Error(`markPlayerGuessed: ${error.message}`);
 }
 
 // Reset all non-disconnected players to 'playing' at the start of each round.
@@ -253,7 +256,8 @@ export async function getRoundGuesses(
 
 // Store the current round's target for server-side score recomputation trigger
 export async function setRoundTarget(roomId: string, lat: number, lng: number): Promise<void> {
-  await supabase.from('rooms').update({ cur_lat: lat, cur_lng: lng }).eq('id', roomId);
+  const { error } = await supabase.from('rooms').update({ cur_lat: lat, cur_lng: lng }).eq('id', roomId);
+  if (error) console.error(`setRoundTarget: ${error.message}`);
 }
 
 // Atomic increment — prevents lost-update race if two rounds resolve close together.

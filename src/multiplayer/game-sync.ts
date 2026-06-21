@@ -85,10 +85,15 @@ export async function handleMpGuessSubmit(
     : null;
   const timeMs = Date.now() - mpState.roundStartTime;
 
-  await submitGuessToDb(mpState.room.id, round, lat, lng, dist, pts, timeMs);
-  // Update DB status to 'guessed' — Postgres Changes fires on all clients, giving the
-  // host a reliable DB-backed trigger for _checkAllGuessed, not just broadcast delivery.
-  await markPlayerGuessed(mpState.room.id, getPlayerId());
+  try {
+    await submitGuessToDb(mpState.room.id, round, lat, lng, dist, pts, timeMs);
+    // Update DB status to 'guessed' — Postgres Changes fires on all clients, giving the
+    // host a reliable DB-backed trigger for _checkAllGuessed, not just broadcast delivery.
+    await markPlayerGuessed(mpState.room.id, getPlayerId());
+  } catch (err) {
+    console.error('[MP] DB write failed, broadcasting anyway so host can still resolve round:', err);
+  }
+  // Always broadcast — even if DB writes failed the host can still tally via broadcast.
   broadcast({ type: 'player:guessed', player_id: getPlayerId(), round });
 }
 

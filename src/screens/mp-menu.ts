@@ -6,7 +6,7 @@ import {
 } from '../multiplayer/rooms';
 import { openChannel } from '../multiplayer/channel';
 import {
-  setMpActive, setMpRoom, setMpLocalPlayer, setMpPlayers,
+  setMpActive, setMpRoom, setMpLocalPlayer, setMpPlayers, resetMpState,
 } from '../multiplayer/mp-state';
 import { handleBroadcastEvent, handlePlayersUpdate } from '../multiplayer/game-sync';
 import { showLobby } from './lobby';
@@ -115,8 +115,9 @@ async function _enterRoom(
       (updated) => handlePlayersUpdate(updated),
     );
   } catch {
+    // channel.ts already closed the channel on failure; reset all MP state too.
+    resetMpState();
     showError('Could not connect to room. Check your connection and try again.');
-    setMpActive(false);
     return;
   }
 

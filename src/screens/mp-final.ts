@@ -1,5 +1,6 @@
 import { showScreen } from './index';
 import { getMpState, resetMpState } from '../multiplayer/mp-state';
+import { escHtml, safeColor } from '../utils/html';
 import { closeChannel } from '../multiplayer/channel';
 import { launchConfetti } from '../ui/confetti';
 import type { FinalScore } from '../multiplayer/types';
@@ -28,9 +29,9 @@ export function showMpFinal(scores: FinalScore[]): void {
 
   showScreen('mp-final');
 
-  // Confetti for winner
+  // Confetti only for the winner
   const localRank = scores.find((s) => s.player_id === localId)?.rank ?? 999;
-  if (localRank <= 2) launchConfetti();
+  if (localRank === 1) launchConfetti();
 }
 
 function renderPodium(top3: FinalScore[], localId: string): void {
@@ -102,10 +103,3 @@ export function initMpFinal(): void {
   });
 }
 
-function escHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function safeColor(c: string): string {
-  return /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : '#888888';
-}

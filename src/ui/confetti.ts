@@ -1,9 +1,18 @@
 const COLORS = ['#00e5a0', '#7c6aff', '#ff6b35', '#ffffff', '#ffe066', '#ff3d5a'];
 
+let spawnHandles: ReturnType<typeof setTimeout>[] = [];
+
 export function launchConfetti(): void {
+  clearConfetti();
   for (let i = 0; i < 80; i++) {
-    setTimeout(() => spawnParticle(), i * 28);
+    spawnHandles.push(setTimeout(() => spawnParticle(), i * 28));
   }
+}
+
+export function clearConfetti(): void {
+  spawnHandles.forEach(clearTimeout);
+  spawnHandles = [];
+  document.querySelectorAll('.cf').forEach((el) => el.remove());
 }
 
 function spawnParticle(): void {

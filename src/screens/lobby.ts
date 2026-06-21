@@ -1,5 +1,6 @@
 import { showScreen } from './index';
 import { getMpState, setMpPlayers } from '../multiplayer/mp-state';
+import { escHtml, safeColor } from '../utils/html';
 import { leaveRoom } from '../multiplayer/rooms';
 import { hostStartGame } from '../multiplayer/game-sync';
 import { closeChannel } from '../multiplayer/channel';
@@ -173,27 +174,27 @@ async function onLeave(): Promise<void> {
   showScreen('splash');
 }
 
+let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
+
 function onCopyLink(): void {
   const mpState = getMpState();
   if (!mpState.room) return;
 
   const url = `${location.origin}${location.pathname}?room=${mpState.room.code}`;
   const btn = document.getElementById('btn-copy-link')!;
-  const orig = btn.textContent;
 
   navigator.clipboard.writeText(url).then(() => {
+    if (copyResetTimer) clearTimeout(copyResetTimer);
     btn.textContent = 'Copied!';
-    setTimeout(() => { btn.textContent = orig; }, 2000);
+    btn.setAttribute('disabled', '');
+    copyResetTimer = setTimeout(() => {
+      btn.textContent = 'Copy Link';
+      btn.removeAttribute('disabled');
+      copyResetTimer = null;
+    }, 2000);
   }).catch(() => {
     // Clipboard API unavailable (HTTP, denied permission) — show URL for manual copy
     prompt('Copy invite link:', url);
   });
 }
 
-function escHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function safeColor(c: string): string {
-  return /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : '#888888';
-}

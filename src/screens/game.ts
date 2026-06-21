@@ -2,7 +2,7 @@ import { showScreen } from './index';
 import { showResult } from './result';
 import { showFinal } from './final';
 import { getState, resetGame, beginRound, recordGuess, addScore, setRound } from '../state';
-import { haversineKm, calcScore, scoreColorClass } from '../services/scoring';
+import { haversineKm, calcScore, calcMpScore, scoreColorClass } from '../services/scoring';
 import { GameTimer } from '../services/timer';
 import { initGameMap, invalidateGameMap } from '../services/map';
 import { loadStreetView } from '../services/streetView';
@@ -10,6 +10,7 @@ import { randomLandLocation } from '../services/randomLocation';
 import type { RawLoc } from '../multiplayer/types';
 import { getMpState } from '../multiplayer/mp-state';
 import { handleMpGuessSubmit, handleTimerExpired, locationFromCoords } from '../multiplayer/game-sync';
+import { escHtml } from '../utils/html';
 
 let timer: GameTimer | null = null;
 
@@ -34,13 +35,24 @@ export function updateGuessPin(lat: number, lng: number): void {
 export function submitGuess(): void {
   timer?.stop();
   const state = getState();
+  const mpState = getMpState();
   const noGuess = state.guessLat === null;
   const gl = noGuess ? state.currentLocation!.lat : state.guessLat!;
   const gn = noGuess ? state.currentLocation!.lng : state.guessLng!;
   const dist = noGuess ? 0 : haversineKm(gl, gn, state.currentLocation!.lat, state.currentLocation!.lng);
-  const pts = noGuess ? 0 : calcScore(dist);
 
-  if (getMpState().active) {
+  let pts: number;
+  if (noGuess) {
+    pts = 0;
+  } else if (mpState.active) {
+    // Capture elapsed time at the exact moment the guess is submitted
+    const elapsedMs = Date.now() - mpState.roundStartTime;
+    pts = calcMpScore(dist, elapsedMs, 90_000);
+  } else {
+    pts = calcScore(dist);
+  }
+
+  if (mpState.active) {
     // Disable the button to prevent double-submission while awaiting the DB write
     (document.getElementById('btn-guess') as HTMLButtonElement).disabled = true;
     showMpWaiting(pts, noGuess ? null : dist, noGuess);
@@ -186,10 +198,6 @@ function updateMpWaitPlayers(): void {
     const guessed = p.status === 'guessed' || mpState.guessedIds.has(p.player_id);
     return `<div class="mp-player-dot" style="background:${p.color};${guessed ? `box-shadow:0 0 6px ${p.color}` : 'opacity:.3'}"></div>`;
   }).join('') + `<span style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td);margin-left:.4rem">${guessedCount}/${active.length} answered</span>`;
-}
-
-function escHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export function initGameScreen(): void {

@@ -56,9 +56,13 @@ export function initDivider(): void {
   document.addEventListener('mouseup', onEnd);
   document.addEventListener('touchend', onEnd);
 
+  let resizeDebounce: ReturnType<typeof setTimeout> | null = null;
   window.addEventListener('resize', () => {
     svp.style.width = '';
     svp.style.height = '';
-    window.dispatchEvent(new CustomEvent('divider:resize'));
+    if (resizeDebounce) clearTimeout(resizeDebounce);
+    resizeDebounce = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('divider:resize'));
+    }, 100);
   });
 }

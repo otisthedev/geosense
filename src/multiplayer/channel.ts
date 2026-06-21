@@ -34,10 +34,17 @@ export async function openChannel(
 
   // Await confirmed subscription so no events are missed before we're ready
   await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Channel subscribe timed out')), 10_000);
+    const timeout = setTimeout(() => {
+      closeChannel();
+      reject(new Error('Channel subscribe timed out'));
+    }, 10_000);
     ch!.subscribe((status) => {
       if (status === 'SUBSCRIBED') { clearTimeout(timeout); resolve(); }
-      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { clearTimeout(timeout); reject(new Error(status)); }
+      else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        clearTimeout(timeout);
+        closeChannel();
+        reject(new Error(status));
+      }
     });
   });
 }

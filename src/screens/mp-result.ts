@@ -1,5 +1,6 @@
 import { showScreen } from './index';
 import { getMpState, isHost, resetMpState } from '../multiplayer/mp-state';
+import { escHtml as _esc, safeColor as _safeColor } from '../utils/html';
 import { closeChannel } from '../multiplayer/channel';
 import { initMpResultMap } from '../services/map';
 import { launchConfetti } from '../ui/confetti';
@@ -85,13 +86,6 @@ function _stopCountdown(): void {
   if (timerEl) timerEl.textContent = '';
 }
 
-function _esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function _safeColor(c: string): string {
-  return /^#[0-9a-fA-F]{3,8}$/.test(c) ? c : '#888888';
-}
 
 export function initMpResult(): void {
   document.getElementById('btn-mpr-menu')!.addEventListener('click', () => {
