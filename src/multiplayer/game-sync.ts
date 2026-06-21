@@ -119,11 +119,14 @@ export function cancelAllTimers(): void {
 
 function _checkAllGuessed(round: number): void {
   if (!isHost() || round === 0 || roundResolved) return;
-  const { players } = getMpState();
-  const active = players.filter((p) => p.status !== 'disconnected');
-  // Use DB-authoritative status: a player's row is set to 'guessed' after they submit.
-  // This fires via Postgres Changes even if the broadcast was dropped.
-  if (active.length > 0 && active.every((p) => p.status === 'guessed')) {
+  // Ignore stale events that belong to a different round (e.g. broadcast delay)
+  if (round !== getState().round) return;
+  const mpState = getMpState();
+  const active = mpState.players.filter((p) => p.status !== 'disconnected');
+  // Accept either the DB status ('guessed' set by markPlayerGuessed via Postgres Changes)
+  // OR the in-memory guessedIds set (populated immediately when player:guessed broadcast arrives).
+  // This way the round resolves correctly even when Postgres Changes hasn't fired yet.
+  if (active.length > 0 && active.every((p) => p.status === 'guessed' || mpState.guessedIds.has(p.player_id))) {
     if (resolveTimer) { clearTimeout(resolveTimer); resolveTimer = null; }
     _resolveRound(round);
   }
