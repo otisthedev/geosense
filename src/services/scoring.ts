@@ -18,13 +18,16 @@ export function calcScore(km: number): number {
   return Math.max(0, Math.round(5000 * Math.exp(-km / 2000)));
 }
 
-// Multiplayer: distance is primary (max 4000, 80%) + time bonus (max 1000, 20%)
-// Distance still dominates: a 0 km guess at time limit (4000) beats any guess ≥ 1600 km instantly
+// Multiplayer: 50/50 split — distance component (max 2500) + time component (max 2500).
+// Server trigger mirrors this formula and also applies the instant-submit penalty
+// (< 3 s → 30% score) and speed-intuition bonus (3–15 s → +200 pts).
+// This client-side value is used for display only; the authoritative score comes
+// from the DB trigger via round:end results.
 export function calcMpScore(km: number, elapsedMs: number, durationMs: number): number {
-  const distScore = Math.max(0, Math.round(4000 * Math.exp(-km / 2000)));
+  const distScore = Math.max(0, Math.round(2500 * Math.exp(-km / 2000)));
   const remaining = Math.max(0, durationMs - elapsedMs);
-  const timeBonus = Math.round(1000 * (remaining / durationMs));
-  return distScore + timeBonus;
+  const timeScore = Math.round(2500 * (remaining / durationMs));
+  return distScore + timeScore;
 }
 
 export function scoreColorClass(pts: number, noGuess: boolean): string {

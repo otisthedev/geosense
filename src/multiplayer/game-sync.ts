@@ -6,12 +6,12 @@ import {
 import {
   submitGuessToDb, getRoundGuesses, getRoomPlayers,
   setRoomStatus, updatePlayerScore, getPlayerId, setRoundTarget,
-  markPlayerGuessed, resetPlayersToPlaying,
+  markPlayerGuessed, resetPlayersToPlaying, getNextRoundLocation,
 } from './rooms';
 import { getState } from '../state';
-import { haversineKm } from '../services/scoring';
 import { locationFromCoords } from '../services/randomLocation';
 import type { BroadcastEvent, RoundResult, FinalScore, RoomPlayer } from './types';
+import type { BehaviorMeta } from './anti-cheat';
 
 const TOTAL_ROUNDS = 5;
 const ROUND_DISPLAY_MS = 8_000;
@@ -21,6 +21,10 @@ let resolveTimer: ReturnType<typeof setTimeout> | null = null;
 let advanceTimer: ReturnType<typeof setTimeout> | null = null;
 // Prevents _resolveRound running twice if _checkAllGuessed and resolveTimer fire together
 let roundResolved = false;
+// Set synchronously in handleBroadcastEvent when round:start arrives, before the async
+// DB fetch for the round location. Used by _checkAllGuessed to filter stale events
+// without racing against startMpRound() (which updates getState().round later).
+let mpCurrentRound = 0;
 
 // ─── Central broadcast router ─────────────────────────────────────────────────
 
@@ -28,9 +32,13 @@ export function handleBroadcastEvent(event: BroadcastEvent): void {
   switch (event.type) {
     case 'round:start': {
       roundResolved = false;
+      mpCurrentRound = event.round; // set synchronously so _checkAllGuessed guard works immediately
       if (resolveTimer) { clearTimeout(resolveTimer); resolveTimer = null; }
       setMpRoundStart(event.start_time);
-      emitMpSync({ type: 'round:start', round: event.round, loc: event.loc, startTime: event.start_time, duration: event.duration });
+      // Coordinates are no longer in the broadcast. Each client fetches them
+      // from room_secrets via the get_round_location security-definer RPC.
+      // This prevents coordinate extraction from channel eavesdropping.
+      _fetchAndEmitRoundStart(event.round, event.start_time, event.duration);
       break;
     }
     case 'player:guessed': {
@@ -60,6 +68,23 @@ export function handleBroadcastEvent(event: BroadcastEvent): void {
   }
 }
 
+// Fetch this round's location from room_secrets (not from the broadcast) then
+// emit the round:start sync event so the game screen can start loading.
+async function _fetchAndEmitRoundStart(
+  round: number,
+  startTime: number,
+  duration: number,
+): Promise<void> {
+  const mpState = getMpState();
+  if (!mpState.room) return;
+  try {
+    const rawLoc = await getNextRoundLocation(mpState.room.id, round);
+    emitMpSync({ type: 'round:start', round, loc: rawLoc, startTime, duration });
+  } catch (err) {
+    console.error('[AC] Failed to fetch round location from DB:', err);
+  }
+}
+
 export function handlePlayersUpdate(players: RoomPlayer[]): void {
   setMpPlayers(players);
   emitMpSync({ type: 'players:update', players });
@@ -72,21 +97,24 @@ export async function handleMpGuessSubmit(
   lat: number | null,
   lng: number | null,
   noGuess: boolean,
-  pts: number,
+  meta: BehaviorMeta,   // behavioral signals logged to round_guesses.meta
 ): Promise<void> {
   const mpState = getMpState();
   const gameState = getState();
   if (!mpState.room) return;
 
   const round = gameState.round;
-  const loc = gameState.currentLocation!;
-  const dist = (!noGuess && lat !== null && lng !== null)
-    ? haversineKm(lat, lng, loc.lat, loc.lng)
-    : null;
-  const timeMs = Date.now() - mpState.roundStartTime;
 
   try {
-    await submitGuessToDb(mpState.room.id, round, lat, lng, dist, pts, timeMs);
+    // submit_guess RPC validates room membership, game state, and coordinate
+    // ranges before inserting. score/time_ms are computed by server trigger.
+    await submitGuessToDb(
+      mpState.room.id,
+      round,
+      noGuess ? null : lat,
+      noGuess ? null : lng,
+      meta as unknown as Record<string, unknown>,
+    );
     // Update DB status to 'guessed' — Postgres Changes fires on all clients, giving the
     // host a reliable DB-backed trigger for _checkAllGuessed, not just broadcast delivery.
     await markPlayerGuessed(mpState.room.id, getPlayerId());
@@ -124,8 +152,12 @@ export function cancelAllTimers(): void {
 
 function _checkAllGuessed(round: number): void {
   if (!isHost() || round === 0 || roundResolved) return;
-  // Ignore stale events that belong to a different round (e.g. broadcast delay)
-  if (round !== getState().round) return;
+  // Ignore stale events from a different round. Uses mpCurrentRound (set synchronously
+  // when round:start arrives) rather than getState().round (set later, after the async
+  // DB fetch in _fetchAndEmitRoundStart completes). Without this, a player:guessed
+  // broadcast arriving before _fetchAndEmitRoundStart finishes would be incorrectly
+  // rejected because getState().round still reflects the previous round.
+  if (round !== mpCurrentRound) return;
   const mpState = getMpState();
   const active = mpState.players.filter((p) => p.status !== 'disconnected');
   // Accept either the DB status ('guessed' set by markPlayerGuessed via Postgres Changes)
@@ -153,15 +185,15 @@ async function _resolveRound(round: number): Promise<void> {
   const results: RoundResult[] = activePlayers.map((p) => {
     const g = rawGuesses.find((x) => x.player_id === p.player_id);
     return {
-      player_id: p.player_id,
-      name: p.name,
-      color: p.color,
-      lat: g?.lat ?? null,
-      lng: g?.lng ?? null,
+      player_id:   p.player_id,
+      name:        p.name,
+      color:       p.color,
+      lat:         g?.lat ?? null,
+      lng:         g?.lng ?? null,
       distance_km: g?.distance_km ?? null,
-      score: g?.score ?? 0,
-      no_guess: !g || g.lat === null,
-      time_ms: g?.time_ms ?? 0,
+      score:       g?.score ?? 0,    // server-computed value from DB trigger
+      no_guess:    !g || g.lat === null,
+      time_ms:     g?.time_ms ?? 0,  // server-computed value from DB trigger
     };
   });
 
@@ -180,12 +212,12 @@ async function _resolveRound(round: number): Promise<void> {
         .sort((a, b) => b.total_score - a.total_score);
 
       const finalScores: FinalScore[] = sorted.map((p, i) => ({
-        player_id: p.player_id,
-        name: p.name,
-        color: p.color,
-        total_score: p.total_score,
+        player_id:    p.player_id,
+        name:         p.name,
+        color:        p.color,
+        total_score:  p.total_score,
         round_scores: p.round_scores as number[],
-        rank: i + 1,
+        rank:         i + 1,
       }));
 
       await setRoomStatus(mpState.room!.id, 'finished');
@@ -203,19 +235,27 @@ function _scheduleNextRound(round: number): void {
     const mpState = getMpState();
     if (!mpState.room) return;
     const nextRound = round + 1;
-    const rawLoc = mpState.room.loc_seq[nextRound - 1];
-    if (!rawLoc) {
-      console.error(`[MP] loc_seq[${nextRound - 1}] undefined — cannot start round ${nextRound}`);
+
+    // Fetch from room_secrets via security-definer RPC — not from the broadcast or
+    // rooms table, so the host is also subject to the same access control.
+    let rawLoc;
+    try {
+      rawLoc = await getNextRoundLocation(mpState.room.id, nextRound);
+    } catch (err) {
+      console.error(`[MP] Failed to fetch loc for round ${nextRound}:`, err);
       return;
     }
+
     await resetPlayersToPlaying(mpState.room.id);
-    await setRoundTarget(mpState.room.id, rawLoc.lat, rawLoc.lng);
+    // Sets cur_lat/cur_lng and round_started_at (offset by 1 500 ms = broadcast delay)
+    await setRoundTarget(mpState.room.id, rawLoc.lat, rawLoc.lng, 1500);
+
+    // Broadcast round:start WITHOUT coordinates — clients fetch via get_round_location()
     broadcast({
-      type: 'round:start',
-      round: nextRound,
-      loc: rawLoc,
+      type:       'round:start',
+      round:      nextRound,
       start_time: Date.now() + 1500,
-      duration: 90,
+      duration:   90,
     });
     advanceTimer = null;
   }, ROUND_DISPLAY_MS);
@@ -228,21 +268,24 @@ export async function hostStartGame(): Promise<void> {
   const mpState = getMpState();
   if (!mpState.room) return;
 
-  const rawLoc = mpState.room.loc_seq[0];
-  if (!rawLoc) {
-    console.error('[MP] loc_seq[0] undefined — cannot start game');
+  let rawLoc;
+  try {
+    rawLoc = await getNextRoundLocation(mpState.room.id, 1);
+  } catch (err) {
+    console.error('[MP] Failed to fetch loc for round 1:', err);
     return;
   }
 
   await setRoomStatus(mpState.room.id, 'playing', 1);
-  await setRoundTarget(mpState.room.id, rawLoc.lat, rawLoc.lng);
+  // Offset by 2 000 ms to match the longer start_time delay below
+  await setRoundTarget(mpState.room.id, rawLoc.lat, rawLoc.lng, 2000);
 
+  // Broadcast round:start WITHOUT coordinates
   broadcast({
-    type: 'round:start',
-    round: 1,
-    loc: rawLoc,
+    type:       'round:start',
+    round:      1,
     start_time: Date.now() + 2000,
-    duration: 90,
+    duration:   90,
   });
 }
 

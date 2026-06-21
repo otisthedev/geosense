@@ -10,9 +10,14 @@ import { randomLandLocation } from '../services/randomLocation';
 import type { RawLoc } from '../multiplayer/types';
 import { getMpState } from '../multiplayer/mp-state';
 import { handleMpGuessSubmit, handleTimerExpired, locationFromCoords } from '../multiplayer/game-sync';
+import { behaviorTracker } from '../multiplayer/anti-cheat';
 import { escHtml } from '../utils/html';
 
 let timer: GameTimer | null = null;
+
+// Pending confirmation timeout for manual guess submissions.
+// Timer-triggered auto-submits bypass this via submitGuess(true).
+let confirmTimer: ReturnType<typeof setTimeout> | null = null;
 
 function updateTimerUI(remaining: number, max: number): void {
   const pct = (remaining / max) * 100;
@@ -26,14 +31,55 @@ function updateTimerUI(remaining: number, max: number): void {
 }
 
 export function updateGuessPin(lat: number, lng: number): void {
+  // Record for behavioral metadata: first-pin timing and total pin-move count
+  behaviorTracker.recordPin();
   recordGuess(lat, lng);
   document.getElementById('btn-guess')!.classList.add('ready');
   document.getElementById('guess-lbl')!.textContent = `${lat.toFixed(1)}°, ${lng.toFixed(1)}°`;
   document.getElementById('guess-float')!.classList.add('pinned');
 }
 
-export function submitGuess(): void {
+// ─── Guess submission ─────────────────────────────────────────────────────────
+
+// Manual clicks go through a 1-second confirmation window (anti-bot friction).
+// Timer-triggered auto-submits call submitGuess(true) to bypass it immediately.
+export function submitGuess(immediate = false): void {
+  // If a confirmation is pending and something forces immediate submit (timer),
+  // cancel the countdown and fire right away.
+  if (confirmTimer) {
+    clearTimeout(confirmTimer);
+    confirmTimer = null;
+  }
+
+  if (!immediate) {
+    const state = getState();
+    const btn = document.getElementById('btn-guess') as HTMLButtonElement;
+
+    // No pin placed yet — treat as a no-guess immediate submit
+    if (state.guessLat === null) {
+      _executeSubmit();
+      return;
+    }
+
+    if (btn.disabled) return; // already in flight
+
+    btn.disabled = true;
+    btn.textContent = 'Confirming…';
+
+    confirmTimer = setTimeout(() => {
+      confirmTimer = null;
+      _executeSubmit();
+    }, 1000);
+    return;
+  }
+
+  _executeSubmit();
+}
+
+function _executeSubmit(): void {
   timer?.stop();
+  behaviorTracker.stop();
+
   const state = getState();
   const mpState = getMpState();
   const noGuess = state.guessLat === null;
@@ -45,7 +91,6 @@ export function submitGuess(): void {
   if (noGuess) {
     pts = 0;
   } else if (mpState.active) {
-    // Capture elapsed time at the exact moment the guess is submitted
     const elapsedMs = Date.now() - mpState.roundStartTime;
     pts = calcMpScore(dist, elapsedMs, 90_000);
   } else {
@@ -53,11 +98,11 @@ export function submitGuess(): void {
   }
 
   if (mpState.active) {
-    // Disable the button to prevent double-submission while awaiting the DB write
     (document.getElementById('btn-guess') as HTMLButtonElement).disabled = true;
     showMpWaiting(pts, noGuess ? null : dist, noGuess);
-    // Add score after DB confirms so local state matches server truth
-    handleMpGuessSubmit(noGuess ? null : gl, noGuess ? null : gn, noGuess, pts)
+    // Collect behavioral signals at submission time and pass to DB
+    const meta = behaviorTracker.collect(Date.now());
+    handleMpGuessSubmit(noGuess ? null : gl, noGuess ? null : gn, noGuess, meta)
       .then(() => addScore(pts))
       .catch(() => addScore(pts));
   } else {
@@ -65,6 +110,8 @@ export function submitGuess(): void {
     showResult({ guessLat: gl, guessLng: gn, distKm: dist, points: pts, noGuess });
   }
 }
+
+// ─── Round lifecycle ──────────────────────────────────────────────────────────
 
 export function startGame(): void {
   resetGame();
@@ -82,7 +129,8 @@ export function nextRound(): void {
 
   _renderGameScreen();
 
-  timer = new GameTimer(getState().timerMax, updateTimerUI, submitGuess);
+  // Auto-submit immediately on timer expiry (no confirmation delay)
+  timer = new GameTimer(getState().timerMax, updateTimerUI, () => submitGuess(true));
   timer.start();
 }
 
@@ -95,14 +143,18 @@ export function startMpRound(rawLoc: RawLoc, startTime: number, duration: number
   const loc = locationFromCoords(rawLoc.lat, rawLoc.lng, rawLoc.head);
   beginRound(loc);
 
+  // Start behavioral tracking from the server's declared round start time
+  behaviorTracker.start(startTime);
+
   // Sync timer to server clock — account for any elapsed time since startTime
   const elapsed = Math.max(0, Math.floor((Date.now() - startTime) / 1000));
   const remaining = Math.max(15, duration - elapsed);
 
   _renderGameScreen();
 
+  // Auto-submit on timer expiry (no confirmation delay for forced submits)
   timer = new GameTimer(remaining, updateTimerUI, () => {
-    submitGuess();
+    submitGuess(true);
     handleTimerExpired();
   });
   timer.start();
@@ -117,6 +169,7 @@ function _renderGameScreen(): void {
   const guessBtn = document.getElementById('btn-guess') as HTMLButtonElement;
   guessBtn.className = 'btn-guess';
   guessBtn.disabled = false;
+  guessBtn.textContent = 'Guess';
   document.getElementById('guess-lbl')!.textContent = 'Drop a pin to guess';
   document.getElementById('guess-float')!.classList.remove('pinned');
   document.getElementById('map-tip')!.classList.remove('hide');
@@ -131,6 +184,11 @@ function _renderGameScreen(): void {
   const mpBar = document.getElementById('mp-bar')!;
   mpBar.hidden = !getMpState().active;
 
+  // Soft DevTools detection: warn in console (no action taken, data logged with guess)
+  if (window.outerWidth - window.innerWidth > 160 || window.outerHeight - window.innerHeight > 160) {
+    console.warn('[AC] DevTools may be open — flagged in behavioral metadata');
+  }
+
   setTimeout(() => {
     initGameMap(
       'leaflet-map',
@@ -142,6 +200,8 @@ function _renderGameScreen(): void {
 
   loadStreetView(s.currentLocation!, s.round);
 }
+
+// ─── MP waiting overlay ───────────────────────────────────────────────────────
 
 // Render the post-submission waiting overlay in MP mode
 function showMpWaiting(pts: number, distKm: number | null, noGuess: boolean): void {
@@ -201,6 +261,7 @@ function updateMpWaitPlayers(): void {
 }
 
 export function initGameScreen(): void {
-  document.getElementById('btn-guess')!.addEventListener('click', submitGuess);
+  // Use a wrapper so the event handler doesn't pass the MouseEvent as `immediate`
+  document.getElementById('btn-guess')!.addEventListener('click', () => submitGuess(false));
   window.addEventListener('divider:resize', () => invalidateGameMap());
 }

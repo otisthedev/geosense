@@ -55,11 +55,15 @@ export async function createRoom(
   const code = await genCode();
   const loc_seq = genLocSeq();
 
-  const { data: room, error: re } = await supabase
-    .from('rooms')
-    .insert({ code, host_id: player_id, type, max_players: maxPlayers, loc_seq })
-    .select()
-    .single();
+  // create_room_with_secret atomically inserts the room and its loc_seq into
+  // room_secrets, keeping location data out of the publicly readable rooms table.
+  const { data: room, error: re } = await supabase.rpc('create_room_with_secret', {
+    p_code:        code,
+    p_host_id:     player_id,
+    p_type:        type,
+    p_max_players: maxPlayers,
+    p_loc_seq:     JSON.stringify(loc_seq),
+  });
 
   if (re || !room) return { error: re?.message ?? 'Could not create room' };
 
@@ -168,6 +172,21 @@ async function _joinById(
   return { room: room as Room, player: player as RoomPlayer, players: [...existing, player as RoomPlayer] };
 }
 
+// ─── Location access ──────────────────────────────────────────────────────────
+
+// Fetches a single round's location from room_secrets via security-definer RPC.
+// Requires the caller to be an active player in the room.
+// The broadcast no longer includes raw coordinates — all clients call this.
+export async function getNextRoundLocation(roomId: string, round: number): Promise<RawLoc> {
+  const { data, error } = await supabase.rpc('get_round_location', {
+    p_room_id:   roomId,
+    p_round:     round,
+    p_player_id: getPlayerId(),
+  });
+  if (error || !data) throw new Error(error?.message ?? 'round_not_found');
+  return data as RawLoc;
+}
+
 // ─── Player operations ────────────────────────────────────────────────────────
 
 export async function getRoomPlayers(roomId: string): Promise<RoomPlayer[]> {
@@ -200,24 +219,22 @@ export async function setRoomStatus(
 
 // ─── Guess operations ─────────────────────────────────────────────────────────
 
+// Submits a guess via the submit_guess security-definer RPC.
+// score / time_ms / distance_km are NOT sent — the server trigger computes them.
 export async function submitGuessToDb(
   roomId: string,
   round: number,
   lat: number | null,
   lng: number | null,
-  distKm: number | null,
-  score: number,
-  timeMs: number,
+  meta: Record<string, unknown>,
 ): Promise<void> {
-  const { error } = await supabase.from('round_guesses').upsert({
-    room_id: roomId,
-    player_id: getPlayerId(),
-    round,
-    lat,
-    lng,
-    distance_km: distKm,
-    score,
-    time_ms: timeMs,
+  const { error } = await supabase.rpc('submit_guess', {
+    p_room_id:   roomId,
+    p_round:     round,
+    p_player_id: getPlayerId(),
+    p_lat:       lat,
+    p_lng:       lng,
+    p_meta:      meta,
   });
   if (error) throw new Error(`submitGuessToDb: ${error.message}`);
 }
@@ -254,13 +271,24 @@ export async function getRoundGuesses(
   return data ?? [];
 }
 
-// Store the current round's target for server-side score recomputation trigger
-export async function setRoundTarget(roomId: string, lat: number, lng: number): Promise<void> {
-  const { error } = await supabase.from('rooms').update({ cur_lat: lat, cur_lng: lng }).eq('id', roomId);
+// Store the current round's target coordinates for the score-recomputation trigger.
+// startOffsetMs must match the delay used in the broadcast so that round_started_at
+// reflects the actual moment clients begin playing, not the DB write time.
+export async function setRoundTarget(
+  roomId: string,
+  lat: number,
+  lng: number,
+  startOffsetMs = 1500,
+): Promise<void> {
+  const roundStartedAt = new Date(Date.now() + startOffsetMs).toISOString();
+  const { error } = await supabase
+    .from('rooms')
+    .update({ cur_lat: lat, cur_lng: lng, round_started_at: roundStartedAt })
+    .eq('id', roomId);
   if (error) console.error(`setRoundTarget: ${error.message}`);
 }
 
-// Atomic increment — prevents lost-update race if two rounds resolve close together.
+// Atomic score increment — prevents lost-update race if two rounds resolve close together.
 // Requires the add_round_score RPC in supabase/schema.sql.
 export async function updatePlayerScore(
   roomId: string,
@@ -269,9 +297,9 @@ export async function updatePlayerScore(
   roundScore: number,
 ): Promise<void> {
   await supabase.rpc('add_round_score', {
-    p_room_id: roomId,
-    p_player_id: playerId,
-    p_delta: delta,
+    p_room_id:     roomId,
+    p_player_id:   playerId,
+    p_delta:       delta,
     p_round_score: roundScore,
   });
 }

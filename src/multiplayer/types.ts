@@ -16,7 +16,7 @@ export interface Room {
   max_players: 2 | 4;
   status: RoomStatus;
   round: number;
-  loc_seq: RawLoc[];
+  // loc_seq intentionally absent: stored in room_secrets, not the public rooms table
   created_at: string;
   expires_at: string;
 }
@@ -58,7 +58,8 @@ export interface FinalScore {
 export interface RoundStartEvent {
   type: 'round:start';
   round: number;
-  loc: RawLoc;
+  // loc is intentionally absent from the broadcast — clients fetch it via
+  // get_round_location() RPC after receiving this event.
   start_time: number;
   duration: number;
 }
