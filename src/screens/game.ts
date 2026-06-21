@@ -264,4 +264,19 @@ export function initGameScreen(): void {
   // Use a wrapper so the event handler doesn't pass the MouseEvent as `immediate`
   document.getElementById('btn-guess')!.addEventListener('click', () => submitGuess(false));
   window.addEventListener('divider:resize', () => invalidateGameMap());
+
+  // Block common screenshot/print shortcuts while the game screen is active.
+  // This doesn't stop OS-level PrtSc or a second device, but it adds friction
+  // for casual clipboard-style screenshots sent to AI assistants.
+  window.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (!document.getElementById('game')?.classList.contains('active')) return;
+    const ctrl = e.ctrlKey || e.metaKey;
+    if (
+      e.key === 'PrintScreen' ||
+      (ctrl && e.key === 'p') ||                           // Ctrl+P / Cmd+P (print)
+      (ctrl && e.shiftKey && e.key.toLowerCase() === 's') // Ctrl+Shift+S (save as)
+    ) {
+      e.preventDefault();
+    }
+  });
 }
